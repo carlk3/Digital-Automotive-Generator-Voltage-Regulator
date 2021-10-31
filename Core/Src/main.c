@@ -16,6 +16,13 @@
  *
  ******************************************************************************
  */
+
+// Notes:
+// ADC:
+//   80MHz clock / Clock Prescaler 10 => 1 cycle = .125µs
+//   Channel Temperature Sensor:
+//      t S_temp (1) ADC sampling time when reading the temperature 5 - - µs
+//         5 / .125 is >= 40 cycles
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -35,8 +42,6 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-static RunningStat temp_stats, A0_stats, A1_stats;
-
 typedef struct {
 	uint16_t internal_temp;
 	uint16_t A0;
@@ -47,7 +52,7 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define ADC_BUF_LEN 2
+#define ADC_BUF_LEN 1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,10 +63,10 @@ typedef struct {
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-//static adc_raw_rec_t adc_raw_recs[ADC_BUF_LEN];
-//static uint32_t internal_temps[ADC_BUF_LEN];
-static const size_t ADC_RAW_REC_LEN = sizeof(adc_raw_rec_t) / sizeof(uint16_t);
+static float const Bplus_scale = 6.87f / 34060; // voltmeter / raw adc sample
+static size_t const ADC_RAW_REC_LEN = sizeof(adc_raw_rec_t) / sizeof(uint16_t);
 adc_raw_rec_t raw_recs[ADC_BUF_LEN];
+static RunningStat internal_temp_stats, A0_stats, A1_stats, Bplus_stats;
 
 /* USER CODE END PV */
 
@@ -103,24 +108,34 @@ int __io_putchar(int ch) {
 //}
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-//	if (HAL_OK != HAL_ADC_Stop_DMA(&hadc1))
-//		Error_Handler();
-//	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (uint32_t*) raw_recs, ADC_BUF_LEN * ADC_RAW_REC_LEN))
-//		Error_Handler();
+
 	for (size_t ix = 0; ix < ADC_BUF_LEN; ++ix) {
 
-		RS_Push(&A1_stats, raw_recs[ix].A1);
-		printf("Current: %hu\t\tNum: %7u\t\tMean: %g\t\tStdDev: %g\r",
-				raw_recs[ix].A1, RS_NumDataValues(&A1_stats),
-				RS_Mean(&A1_stats), RS_StandardDeviation(&A1_stats));
-		// B+ voltage:
-		// 7.3 => 2260
-		// 7.0 => 2158
-		// 3.0 =>  939.0
+		float inttemp = __LL_ADC_CALC_TEMPERATURE(3300, raw_recs[ix].internal_temp >> 4, LL_ADC_RESOLUTION_12B);
+		RS_Push(&internal_temp_stats, inttemp);
+		printf("Temp: Current: %4.2g, Num: %10u, "
+				"Mean: %4.3g, StdDev: %#7.3g, Min: %6.4g, Max: %6.4g\r\n",
+				inttemp, RS_NumDataValues(&internal_temp_stats),
+				RS_Mean(&internal_temp_stats), RS_StandardDeviation(&internal_temp_stats),
+				RS_Min(&internal_temp_stats), RS_Max(&internal_temp_stats));
 
-		////	printf("Conversion complete\r\n");
-		//		internal_temps[ix] = __LL_ADC_CALC_TEMPERATURE(3300,
-		//				adc_raw_recs[ix].internal, LL_ADC_RESOLUTION_12B);
+		RS_Push(&A1_stats, raw_recs[ix].A1);
+		printf("A1: Raw: %hu, Num: %10u, "
+				"Mean: %4.5g, StdDev: %#7.3g, Min: %4.3g, Max: %4.3g\r\n",
+				raw_recs[ix].A1, RS_NumDataValues(&A1_stats),
+				RS_Mean(&A1_stats), RS_StandardDeviation(&A1_stats),
+				RS_Min(&A1_stats), RS_Max(&A1_stats));
+
+		float BplusV = (float)raw_recs[ix].A1 * Bplus_scale;
+		RS_Push(&Bplus_stats, BplusV);
+		printf("BplusV: %4.3g, Num: %10u, "
+				"Mean: %4.4g, StdDev: %#7.3g, Min: %4.3g, Max: %4.3g\r\e[1A\e[1A",
+				BplusV, RS_NumDataValues(&Bplus_stats),
+				RS_Mean(&Bplus_stats), RS_StandardDeviation(&Bplus_stats),
+				RS_Min(&Bplus_stats), RS_Max(&Bplus_stats));
+
+		fflush(stdout);
+
 	}
 }
 
@@ -133,7 +148,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	setbuf(stdout, NULL); // unbuffered stdout
+//	setbuf(stdout, NULL); // unbuffered stdout
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -160,7 +175,10 @@ int main(void)
   MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
+	RS_init(&internal_temp_stats);
+	RS_init(&A0_stats);
 	RS_init(&A1_stats);
+	RS_init(&Bplus_stats);
 
 //	if (HAL_OK != HAL_UART_Receive_IT(&huart2, buffer, sizeof(buffer)))
 //		Error_Handler();
@@ -168,10 +186,10 @@ int main(void)
 	/* Start analog data conversion */
 	if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
 		Error_Handler();
+	printf("\e[2J\e[H");  // Clear Screen
 	printf("\r\nStart\r\n");
-	if (HAL_OK
-			!= HAL_ADC_Start_DMA(&hadc1, (uint32_t*) raw_recs,
-					ADC_BUF_LEN * ADC_RAW_REC_LEN))
+	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (uint32_t*) raw_recs,
+	ADC_BUF_LEN * ADC_RAW_REC_LEN))
 		Error_Handler();
 	if (HAL_OK != HAL_TIM_Base_Start(&htim6))
 		Error_Handler();
@@ -233,7 +251,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV8;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
