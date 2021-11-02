@@ -23,6 +23,10 @@
 //   Channel Temperature Sensor:
 //      t S_temp (1) ADC sampling time when reading the temperature 5 - - µs
 //         5 / .125 is >= 40 cycles
+
+//   htim6.Init.Prescaler = 8000-1; // 80 MHz -> 10 kHz -> .1 ms
+//   htim6.Init.Period = 100-1; // 10 ms -> 100 Hz
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -41,12 +45,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
-typedef struct {
-	uint16_t internal_temp;
-	uint16_t A0;
-	uint16_t A1;
-} adc_raw_rec_t;
 
 /* USER CODE END PTD */
 
@@ -80,23 +78,6 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-int __io_putchar(int ch) {
-	// Code to write character 'ch' on the UART
-	HAL_UART_Transmit(&huart2, (uint8_t*) &ch, 1, 0xFFFF);
-	return ch;
-}
-//
-//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-//	if (HAL_OK != HAL_UART_Receive_IT(&huart2, buffer, sizeof(buffer)))
-//		Error_Handler();
-//}
-//
-//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-//	if (HAL_OK != HAL_UART_Transmit_IT(&huart2, buffer, sizeof(buffer)))
-//		Error_Handler();
-//
-//}
-
 //void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 //	for (size_t ix = 0; ix < ADC_BUF_LEN/2; ++ix) {
 //
@@ -111,12 +92,17 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
 	for (size_t ix = 0; ix < ADC_BUF_LEN; ++ix) {
 
-		float inttemp = __LL_ADC_CALC_TEMPERATURE(3300, raw_recs[ix].internal_temp >> 4, LL_ADC_RESOLUTION_12B);
+		evt_t evt = { ADC_CMPLT_SIG, {raw_recs} };
+		osMessageQueuePut(CentralEvtQHandle, &evt, 0, 0);
+
+		float inttemp = __LL_ADC_CALC_TEMPERATURE(3300,
+				raw_recs[ix].internal_temp >> 4, LL_ADC_RESOLUTION_12B);
 		RS_Push(&internal_temp_stats, inttemp);
 		printf("Temp: Current: %4.2g, Num: %10u, "
 				"Mean: %4.3g, StdDev: %#7.3g, Min: %6.4g, Max: %6.4g\r\n",
 				inttemp, RS_NumDataValues(&internal_temp_stats),
-				RS_Mean(&internal_temp_stats), RS_StandardDeviation(&internal_temp_stats),
+				RS_Mean(&internal_temp_stats),
+				RS_StandardDeviation(&internal_temp_stats),
 				RS_Min(&internal_temp_stats), RS_Max(&internal_temp_stats));
 
 		RS_Push(&A1_stats, raw_recs[ix].A1);
@@ -126,13 +112,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 				RS_Mean(&A1_stats), RS_StandardDeviation(&A1_stats),
 				RS_Min(&A1_stats), RS_Max(&A1_stats));
 
-		float BplusV = (float)raw_recs[ix].A1 * Bplus_scale;
+		float BplusV = (float) raw_recs[ix].A1 * Bplus_scale;
 		RS_Push(&Bplus_stats, BplusV);
-		printf("BplusV: %4.3g, Num: %10u, "
-				"Mean: %4.4g, StdDev: %#7.3g, Min: %4.3g, Max: %4.3g\r\e[1A\e[1A",
-				BplusV, RS_NumDataValues(&Bplus_stats),
-				RS_Mean(&Bplus_stats), RS_StandardDeviation(&Bplus_stats),
-				RS_Min(&Bplus_stats), RS_Max(&Bplus_stats));
+		printf(
+				"BplusV: %4.3g, Num: %10u, "
+						"Mean: %4.4g, StdDev: %#7.3g, Min: %4.3g, Max: %4.3g\r\e[1A\e[1A",
+				BplusV, RS_NumDataValues(&Bplus_stats), RS_Mean(&Bplus_stats),
+				RS_StandardDeviation(&Bplus_stats), RS_Min(&Bplus_stats),
+				RS_Max(&Bplus_stats));
 
 		fflush(stdout);
 
@@ -179,9 +166,6 @@ int main(void)
 	RS_init(&A0_stats);
 	RS_init(&A1_stats);
 	RS_init(&Bplus_stats);
-
-//	if (HAL_OK != HAL_UART_Receive_IT(&huart2, buffer, sizeof(buffer)))
-//		Error_Handler();
 
 	/* Start analog data conversion */
 	if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))

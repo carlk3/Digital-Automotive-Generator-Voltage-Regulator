@@ -21,7 +21,7 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-
+static uint8_t byte;
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart2;
@@ -87,6 +87,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_NVIC_EnableIRQ(USART2_IRQn);
   /* USER CODE BEGIN USART2_MspInit 1 */
 
+		if (HAL_OK != HAL_UART_Receive_IT(&huart2, &byte, sizeof(byte)))
+			Error_Handler();
+
   /* USER CODE END USART2_MspInit 1 */
   }
 }
@@ -117,6 +120,19 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
+int __io_putchar(int ch) {
+	// Code to write character 'ch' on the UART
+	HAL_UART_Transmit(&huart2, (uint8_t*) &ch, 1, 0xFFFF);
+	return ch;
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	evt_t evt = { CNSL_KEYSTROKE_SIG, .content.data = byte };
+	osMessageQueuePut(CentralEvtQHandle, &evt, 0, 0);
+	/* Receive one byte in interrupt mode */
+	HAL_UART_Receive_IT(&huart2, &byte, 1);
+}
 
 /* USER CODE END 1 */
 
