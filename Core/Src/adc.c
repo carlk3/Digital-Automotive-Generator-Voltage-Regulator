@@ -22,6 +22,11 @@
 
 /* USER CODE BEGIN 0 */
 
+#include "running_stat.h"
+#include "global.h"
+
+adc_raw_rec_t raw_recs[ADC_BUF_LEN];
+
 /* USER CODE END 0 */
 
 ADC_HandleTypeDef hadc1;
@@ -44,7 +49,7 @@ void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV10;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
@@ -77,7 +82,7 @@ void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_47CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -89,7 +94,6 @@ void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_5;
   sConfig.Rank = ADC_REGULAR_RANK_2;
-  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -180,6 +184,34 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
+//void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
+//	for (size_t ix = 0; ix < ADC_BUF_LEN/2; ++ix) {
+//
+//		RS_Push(&A1_stats, raw_recs[ix].A1);
+//		printf("Current: %hu\t\tNum: %7u\t\tMean: %g\t\tStdDev: %g\r",
+//				raw_recs[ix].A1, RS_NumDataValues(&A1_stats), RS_Mean(&A1_stats),
+//				RS_StandardDeviation(&A1_stats));
+//	}
+//}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+
+	for (size_t ix = 0; ix < ADC_BUF_LEN; ++ix) {
+
+		evt_t evt = { ADC_CMPLT_SIG, { raw_recs } };
+		osMessageQueuePut(CentralEvtQHandle, &evt, 0, 0);
+
+		float inttemp = __LL_ADC_CALC_TEMPERATURE(3300,
+				raw_recs[ix].internal_temp >> 4, LL_ADC_RESOLUTION_12B);
+		RS_Push(&internal_temp_stats, inttemp);
+
+		RS_Push(&A1_stats, raw_recs[ix].A1);
+		float BplusV = (float) raw_recs[ix].A1 * Bplus_volt_scale;
+		RS_Push(&Bplus_volt_stats, BplusV);
+
+	}
+}
 
 /* USER CODE END 1 */
 

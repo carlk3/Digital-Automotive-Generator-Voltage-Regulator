@@ -35,12 +35,20 @@ extern ADC_HandleTypeDef hadc1;
 
 /* USER CODE BEGIN Private defines */
 
+#define ADC_BUF_LEN 1
+typedef struct {
+	uint16_t internal_temp;
+	uint16_t A0;
+	uint16_t A1;
+} __attribute__((packed)) adc_raw_rec_t;
+#define ADC_RAW_REC_LEN (sizeof(adc_raw_rec_t) / sizeof(uint16_t))
+
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+extern adc_raw_rec_t raw_recs[ADC_BUF_LEN];
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

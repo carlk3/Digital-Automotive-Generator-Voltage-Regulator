@@ -58,12 +58,6 @@ typedef struct evt {
 } evt_t;
 extern osMessageQueueId_t CentralEvtQHandle;
 
-typedef struct {
-	uint16_t internal_temp;
-	uint16_t A0;
-	uint16_t A1;
-} adc_raw_rec_t;
-
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

@@ -4,6 +4,7 @@
 #include <stdlib.h>     /* strtoul */
 
 #include "main.h"
+#include "global.h"
 #include "task.h"
 
 typedef struct cnsl_t cnsl_t;
@@ -49,6 +50,27 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			switch (u) {
 			case 1:
 				printf("Uptime: %lu seconds\n", xTaskGetTickCount() / 1000); // FIXME: overflows
+				printf(
+						"Temp: Current: %4.2g, Num: %10u, "
+								"Mean: %4.3g, StdDev: %#7.3g, Min: %6.4g, Max: %6.4g\r\n",
+						internal_temp, RS_NumDataValues(&internal_temp_stats),
+						RS_Mean(&internal_temp_stats),
+						RS_StandardDeviation(&internal_temp_stats),
+						RS_Min(&internal_temp_stats),
+						RS_Max(&internal_temp_stats));
+//				printf("A1: Raw: %hu, Num: %10u, "
+//						"Mean: %4.5g, StdDev: %#7.3g, Min: %4.3g, Max: %4.3g\r\n",
+//						raw_recs[ix].A1, RS_NumDataValues(&A1_stats),
+//						RS_Mean(&A1_stats), RS_StandardDeviation(&A1_stats),
+//						RS_Min(&A1_stats), RS_Max(&A1_stats));
+				printf(
+						"BplusV: %4.3g, Num: %10u, "
+								"Mean: %4.4g, StdDev: %#7.3g, Min: %4.3g, Max: %4.3g\r\e[1A\e[1A",
+						Bplus_volt, RS_NumDataValues(&Bplus_volt_stats),
+						RS_Mean(&Bplus_volt_stats),
+						RS_StandardDeviation(&Bplus_volt_stats),
+						RS_Min(&Bplus_volt_stats), RS_Max(&Bplus_volt_stats));
+
 				break;
 			case 2:
 				break;
