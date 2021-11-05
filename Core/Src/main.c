@@ -48,6 +48,7 @@
 #include <stdio.h>
 
 #include "global.h"
+#include "analog.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -117,9 +118,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 	setbuf(stdout, NULL); // unbuffered stdout
+	setvbuf (stdout, 0, _IONBF, 0);
 	printf("\e[2J\e[H"  // Clear Screen
 					"Voltage Regulator Console\r\n\n");
-	fflush(stdout);
 
 	RS_init(&internal_temp_stats);
 	RS_init(&A0_stats);
@@ -129,7 +130,7 @@ int main(void)
 	/* Start analog data conversion */
 	if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
 		Error_Handler();
-	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (uint32_t*) raw_recs,
+	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (void *)raw_recs,
 	ADC_BUF_LEN * ADC_RAW_REC_LEN))
 		Error_Handler();
 

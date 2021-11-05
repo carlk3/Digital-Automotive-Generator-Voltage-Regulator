@@ -26,7 +26,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
 #include "usart.h"
+#include "console_sm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,7 +61,7 @@ const osThreadAttr_t Logger_attributes = {
 osThreadId_t ConsoleHandle;
 const osThreadAttr_t Console_attributes = {
   .name = "Console",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Central */
@@ -222,9 +224,16 @@ void LoggerTask(void *argument)
 void ConsoleTask(void *argument)
 {
   /* USER CODE BEGIN ConsoleTask */
+	printf("%s\r\n", __FUNCTION__);
+	evt_t cnsl_entry_evt = { CNSL_ENTRY_SIG, { 0 } };
+	cnsl_dispatch(&cnsl_entry_evt);
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		// osStatus_t 	osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *msg_prio, uint32_t timeout)
+		evt_t evt;
+		osStatus_t rc = osMessageQueueGet(ConsoleEvtQHandle, &evt, 0, osWaitForever);
+		assert(osOK == rc);
+		cnsl_dispatch(&evt);
 	}
   /* USER CODE END ConsoleTask */
 }

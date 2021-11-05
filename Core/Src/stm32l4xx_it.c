@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    stm32l4xx_it.c
-  * @brief   Interrupt Service Routines.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    stm32l4xx_it.c
+ * @brief   Interrupt Service Routines.
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under Ultimate Liberty license
+ * SLA0044, the "License"; You may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at:
+ *                             www.st.com/SLA0044
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -76,9 +76,8 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-  while (1)
-  {
-  }
+	while (1) {
+	}
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
@@ -196,7 +195,22 @@ void TIM1_UP_TIM16_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-	USART_CharReception_Callback();
+	/* Check RXNE flag value in ISR register */
+	if (LL_USART_IsActiveFlag_RXNE(USART2)
+			&& LL_USART_IsEnabledIT_RXNE(USART2)) {
+		/* RXNE flag will be cleared by reading of RDR register (done in call) */
+		/* Call function in charge of handling Character reception */
+		USART_CharReception_Callback();
+	} else {
+		if (LL_USART_IsActiveFlag_FE(USART2))
+			LL_USART_ClearFlag_FE(USART2);
+		if (LL_USART_IsActiveFlag_PE(USART2))
+			LL_USART_ClearFlag_PE(USART2);
+		if (LL_USART_IsActiveFlag_NE(USART2))
+			LL_USART_ClearFlag_NE(USART2);
+		if (LL_USART_IsActiveFlag_ORE(USART2))
+			LL_USART_ClearFlag_ORE(USART2);
+	}
   /* USER CODE END USART2_IRQn 0 */
   /* USER CODE BEGIN USART2_IRQn 1 */
 

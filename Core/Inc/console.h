@@ -9,7 +9,6 @@
 #define INC_CONSOLE_H_
 
 int __io_putchar(int ch);
-void print(const char *str);
 void USART_CharReception_Callback();
 
 #endif /* INC_CONSOLE_H_ */
