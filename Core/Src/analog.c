@@ -26,9 +26,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 				raw_recs[ix].internal_temp >> 4, LL_ADC_RESOLUTION_12B);
 		RS_Push(&internal_temp_stats, internal_temp);
 
-		RS_Push(&A1_stats, raw_recs[ix].PA3_A2);
+		RS_Push(&A1_stats, raw_recs[ix].PA4_A3_ADC1_IN9_B_VLT);
 
-		Bplus_volt = (float) raw_recs[ix].PA3_A2 * Bplus_volt_scale;
+		Bplus_volt = (float) raw_recs[ix].PA4_A3_ADC1_IN9_B_VLT * Bplus_volt_scale;
 		RS_Push(&Bplus_volt_stats, Bplus_volt);
 
 		osStatus_t rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);

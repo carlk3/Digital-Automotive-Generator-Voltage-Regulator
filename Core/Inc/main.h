@@ -95,6 +95,34 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define D7___3_3v_switch_Pin GPIO_PIN_14
+#define D7___3_3v_switch_GPIO_Port GPIOC
+#define D8___Regulator_Switch_Pin GPIO_PIN_15
+#define D8___Regulator_Switch_GPIO_Port GPIOC
+#define A2___B__Current_Sense_Pin GPIO_PIN_3
+#define A2___B__Current_Sense_GPIO_Port GPIOA
+#define A3___B__Voltage_Sense_Pin GPIO_PIN_4
+#define A3___B__Voltage_Sense_GPIO_Port GPIOA
+#define A4___D__Voltage_Sense_Pin GPIO_PIN_5
+#define A4___D__Voltage_Sense_GPIO_Port GPIOA
+#define A6__ADC1_IN11_Pin GPIO_PIN_6
+#define A6__ADC1_IN11_GPIO_Port GPIOA
+#define A6___ADC1_IN12_Pin GPIO_PIN_7
+#define A6___ADC1_IN12_GPIO_Port GPIOA
+#define D3___ADC1_IN15_Pin GPIO_PIN_0
+#define D3___ADC1_IN15_GPIO_Port GPIOB
+#define D6___ADC1_IN16_Pin GPIO_PIN_1
+#define D6___ADC1_IN16_GPIO_Port GPIOB
+#define D9___Card_Detect_Pin GPIO_PIN_8
+#define D9___Card_Detect_GPIO_Port GPIOA
+#define D10___SPI_SS_Pin GPIO_PIN_11
+#define D10___SPI_SS_GPIO_Port GPIOA
+#define D2___Red_LED_Pin GPIO_PIN_12
+#define D2___Red_LED_GPIO_Port GPIOA
+#define D5_Pin GPIO_PIN_6
+#define D5_GPIO_Port GPIOB
+#define D4_Pin GPIO_PIN_7
+#define D4_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
