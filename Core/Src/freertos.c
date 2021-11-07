@@ -26,9 +26,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
-#include "usart.h"
+//#include <stdio.h>
+
+//#include "usart.h"
 #include "console_sm.h"
+#include "regulator_sm.h"
+#include "analog.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,22 +67,27 @@ const osThreadAttr_t Console_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for Central */
-osThreadId_t CentralHandle;
-const osThreadAttr_t Central_attributes = {
-  .name = "Central",
+/* Definitions for Regulator */
+osThreadId_t RegulatorHandle;
+const osThreadAttr_t Regulator_attributes = {
+  .name = "Regulator",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
-/* Definitions for CentralEvtQ */
-osMessageQueueId_t CentralEvtQHandle;
-const osMessageQueueAttr_t CentralEvtQ_attributes = {
-  .name = "CentralEvtQ"
+/* Definitions for RegulatorEvtQ */
+osMessageQueueId_t RegulatorEvtQHandle;
+const osMessageQueueAttr_t RegulatorEvtQ_attributes = {
+  .name = "RegulatorEvtQ"
 };
 /* Definitions for ConsoleEvtQ */
 osMessageQueueId_t ConsoleEvtQHandle;
 const osMessageQueueAttr_t ConsoleEvtQ_attributes = {
   .name = "ConsoleEvtQ"
+};
+/* Definitions for Period */
+osTimerId_t PeriodHandle;
+const osTimerAttr_t Period_attributes = {
+  .name = "Period"
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,7 +97,8 @@ const osMessageQueueAttr_t ConsoleEvtQ_attributes = {
 
 void LoggerTask(void *argument);
 void ConsoleTask(void *argument);
-void CentralTask(void *argument);
+void RegulatorTask(void *argument);
+void PeriodCallback(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -162,13 +171,21 @@ void MX_FREERTOS_Init(void) {
 	/* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
+  /* Create the timer(s) */
+  /* creation of Period */
+  PeriodHandle = osTimerNew(PeriodCallback, osTimerPeriodic, NULL, &Period_attributes);
+
   /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
+
+//  osStatus_t osTimerStart(osTimerId_t timer_id, uint32_t ticks)
+  osTimerStart(PeriodHandle, 10); // FIXME: should be configurable.
+
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
-  /* creation of CentralEvtQ */
-  CentralEvtQHandle = osMessageQueueNew (32, sizeof(evt_t), &CentralEvtQ_attributes);
+  /* creation of RegulatorEvtQ */
+  RegulatorEvtQHandle = osMessageQueueNew (32, sizeof(evt_t), &RegulatorEvtQ_attributes);
 
   /* creation of ConsoleEvtQ */
   ConsoleEvtQHandle = osMessageQueueNew (16, sizeof(evt_t), &ConsoleEvtQ_attributes);
@@ -184,8 +201,8 @@ void MX_FREERTOS_Init(void) {
   /* creation of Console */
   ConsoleHandle = osThreadNew(ConsoleTask, NULL, &Console_attributes);
 
-  /* creation of Central */
-  CentralHandle = osThreadNew(CentralTask, NULL, &Central_attributes);
+  /* creation of Regulator */
+  RegulatorHandle = osThreadNew(RegulatorTask, NULL, &Regulator_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -224,13 +241,12 @@ void LoggerTask(void *argument)
 void ConsoleTask(void *argument)
 {
   /* USER CODE BEGIN ConsoleTask */
-	printf("%s\r\n", __FUNCTION__);
-	evt_t cnsl_entry_evt = { CNSL_ENTRY_SIG, { 0 } };
-	cnsl_dispatch(&cnsl_entry_evt);
+//	printf("%s\r\n", __FUNCTION__);
+	evt_t evt = { CNSL_ENTRY_SIG, { 0 } };
+	cnsl_dispatch(&evt);
 	/* Infinite loop */
 	for (;;) {
 		// osStatus_t 	osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *msg_prio, uint32_t timeout)
-		evt_t evt;
 		osStatus_t rc = osMessageQueueGet(ConsoleEvtQHandle, &evt, 0, osWaitForever);
 		assert(osOK == rc);
 		cnsl_dispatch(&evt);
@@ -238,21 +254,39 @@ void ConsoleTask(void *argument)
   /* USER CODE END ConsoleTask */
 }
 
-/* USER CODE BEGIN Header_CentralTask */
+/* USER CODE BEGIN Header_RegulatorTask */
 /**
- * @brief Function implementing the Central thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_CentralTask */
-void CentralTask(void *argument)
+* @brief Function implementing the Regulator thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_RegulatorTask */
+void RegulatorTask(void *argument)
 {
-  /* USER CODE BEGIN CentralTask */
+  /* USER CODE BEGIN RegulatorTask */
+	evt_t evt = { REG_ENTRY_SIG, { 0 } };
+	reg_dispatch(&evt);
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		osStatus_t rc = osMessageQueueGet(RegulatorEvtQHandle, &evt, 0, osWaitForever);
+		assert(osOK == rc);
+		reg_dispatch(&evt);
 	}
-  /* USER CODE END CentralTask */
+  /* USER CODE END RegulatorTask */
+}
+
+/* PeriodCallback function */
+void PeriodCallback(void *argument)
+{
+  /* USER CODE BEGIN PeriodCallback */
+	evt_t evt = { PERIOD_SIG, { 0 } };
+	osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+	assert(osOK == rc);
+	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
+	assert(osOK == rc);
+
+	UpdateStats();
+  /* USER CODE END PeriodCallback */
 }
 
 /* Private application code --------------------------------------------------*/

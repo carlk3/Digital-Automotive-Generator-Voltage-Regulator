@@ -52,15 +52,14 @@ extern "C" {
 
 typedef enum {
 	NO_SIG,
-	ADC_ENTRY_SIG,
-	ADC_EXIT_SIG,
-	ADC_CMPLT_SIG,
 	CNSL_ENTRY_SIG,
 	CNSL_EXIT_SIG,
 	REG_ENTRY_SIG,
 	REG_EXIT_SIG,
 	REG_START_SIG,
+	REG_STOP_SIG,
 	KEYSTROKE_SIG,
+	PERIOD_SIG,
 	END_SIG
 } sig_t;
 typedef union {
@@ -71,7 +70,6 @@ typedef struct evt {
 	sig_t sig;
 	evt_data_t content;
 } evt_t;
-extern osMessageQueueId_t CentralEvtQHandle;
 
 /* USER CODE END ET */
 

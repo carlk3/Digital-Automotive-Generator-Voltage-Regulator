@@ -5,9 +5,13 @@
  *      Author: carlk
  */
 
+#include <stdio.h>
+
 #include "main.h"
 
 #include "digital.h"
+
+#include "regulator_sm.h"
 
 typedef struct reg_t reg_t;
 typedef void (*reg_state_t)(evt_t const* const);
@@ -42,11 +46,16 @@ static void reg_run_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
 		enable_33_pwr(true);
+		printf("Regulator started\r\n");
 		break;
-	case ADC_CMPLT_SIG:
+	case REG_STOP_SIG:
+		reg_tran(reg_idle_st);
+		break;
+	case PERIOD_SIG:
 		break;
 	case REG_EXIT_SIG:
 		enable_33_pwr(false);
+		printf("Regulator stopped\r\n");
 		break;
 	default:;
 	}

@@ -40,12 +40,12 @@
 #include "adc.h"
 #include "dma.h"
 #include "spi.h"
-#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "global.h"
@@ -115,7 +115,6 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_USART2_UART_Init();
-  MX_TIM6_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
@@ -125,18 +124,12 @@ int main(void)
 					"Voltage Regulator Console\r\n\n");
 
 	RS_init(&internal_temp_stats);
-	RS_init(&A0_stats);
-	RS_init(&A1_stats);
 	RS_init(&Bplus_volt_stats);
 
 	/* Start analog data conversion */
 	if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
 		Error_Handler();
-	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (void *)raw_recs,
-	ADC_BUF_LEN * ADC_RAW_REC_LEN))
-		Error_Handler();
-
-	if (HAL_OK != HAL_TIM_Base_Start(&htim6))
+	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (void *)&raw_recs, ADC_RAW_REC_LEN))
 		Error_Handler();
 
   /* USER CODE END 2 */
@@ -150,11 +143,12 @@ int main(void)
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	while (1) {
+  while (1)
+  {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	}
+  }
   /* USER CODE END 3 */
 }
 

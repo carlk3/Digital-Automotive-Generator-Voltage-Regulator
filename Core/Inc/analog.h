@@ -8,7 +8,8 @@
 #ifndef INC_ANALOG_H_
 #define INC_ANALOG_H_
 
-#define ADC_BUF_LEN 1
+#include "running_stat.h"
+
 typedef struct {
 	uint16_t internal_temp;
 	uint16_t PA3_A2_ADC1_IN8_B_CUR;  // B+ Current Sense
@@ -21,6 +22,12 @@ typedef struct {
 } /* __attribute__((packed)) */ adc_raw_rec_t;
 #define ADC_RAW_REC_LEN (sizeof(adc_raw_rec_t) / sizeof(uint16_t))
 
-extern adc_raw_rec_t raw_recs[ADC_BUF_LEN];
+extern adc_raw_rec_t raw_recs;
+extern RunningStat internal_temp_stats, Bplus_volt_stats, Bplus_amp_stats;
+
+float internal_temp();
+float Bplus_volt();
+
+void UpdateStats();
 
 #endif /* INC_ANALOG_H_ */

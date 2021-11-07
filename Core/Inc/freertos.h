@@ -10,7 +10,7 @@
 
 #include "cmsis_os.h"
 
-extern osMessageQueueId_t CentralEvtQHandle;
+extern osMessageQueueId_t RegulatorEvtQHandle;
 extern osMessageQueueId_t ConsoleEvtQHandle;
 
 #endif /* INC_FREERTOS_H_ */
