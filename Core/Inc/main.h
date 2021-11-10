@@ -93,10 +93,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define D7___3_3v_switch_Pin GPIO_PIN_14
-#define D7___3_3v_switch_GPIO_Port GPIOC
-#define D8___Regulator_Switch_Pin GPIO_PIN_15
-#define D8___Regulator_Switch_GPIO_Port GPIOC
 #define A2___B__Current_Sense_Pin GPIO_PIN_3
 #define A2___B__Current_Sense_GPIO_Port GPIOA
 #define A3___B__Voltage_Sense_Pin GPIO_PIN_4
@@ -117,10 +113,10 @@ void Error_Handler(void);
 #define D10___SPI_SS_GPIO_Port GPIOA
 #define D2___Red_LED_Pin GPIO_PIN_12
 #define D2___Red_LED_GPIO_Port GPIOA
-#define D5_Pin GPIO_PIN_6
-#define D5_GPIO_Port GPIOB
-#define D4_Pin GPIO_PIN_7
-#define D4_GPIO_Port GPIOB
+#define D5___Regulator_Switch_Control_Pin GPIO_PIN_6
+#define D5___Regulator_Switch_Control_GPIO_Port GPIOB
+#define D4___3_3v_On_Off_Pin GPIO_PIN_7
+#define D4___3_3v_On_Off_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

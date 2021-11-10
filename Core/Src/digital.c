@@ -10,7 +10,7 @@
 
 void enable_33_pwr(bool enable) {
 	if (enable)
-		HAL_GPIO_WritePin(GPIOC, D7___3_3v_switch_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB, D4___3_3v_On_Off_Pin, GPIO_PIN_SET);
 	else
-		HAL_GPIO_WritePin(GPIOC, D7___3_3v_switch_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB, D4___3_3v_On_Off_Pin, GPIO_PIN_RESET);
 }
