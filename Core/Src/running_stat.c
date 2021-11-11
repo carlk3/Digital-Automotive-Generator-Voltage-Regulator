@@ -25,6 +25,8 @@ void RS_init(RunningStat *const pRS) {
 
 void RS_Clear(RunningStat *const pRS) {
 	pRS->m_n = 0;
+	pRS->m_min = FLT_MAX;
+	pRS->m_max = FLT_MIN;
 }
 
 void RS_Push(RunningStat *const pRS, const float x) {

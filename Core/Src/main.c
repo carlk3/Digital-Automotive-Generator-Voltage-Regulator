@@ -127,6 +127,7 @@ int main(void)
 
 	RS_init(&internal_temp_stats);
 	RS_init(&Bplus_volt_stats);
+	RS_init(&Bplus_amp_stats);
 
 	/* Start analog data conversion */
 	if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))

@@ -34,15 +34,18 @@ static void cnsl_tran(cnsl_state_t target) {
 }
 
 static void cnsl_show_volt_st(evt_t const *const pEvt);
+static void cnsl_show_curr_st(evt_t const *const pEvt);
 
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
 		printf("Voltage Regulator\r\n"
 				"1 or n: Show statistics\r\n"
+				"r: Reset statistics\r\n"
 //				"2: Calibrate\r\n"
 //				"3: Configure\r\n"
 				"4 or v: Show B+ voltage\r\n"
+				"5 or c: Show B+ current\r\n"
 				"s: start regulator\r\n"
 				"q: stop regulator\r\n"
 				"[Type choice]: ");
@@ -86,13 +89,34 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 					RS_Mean(&Bplus_volt_stats),
 //					RS_StandardDeviation(&Bplus_volt_stats),
 					RS_Min(&Bplus_volt_stats), RS_Max(&Bplus_volt_stats));
+			printf("B+ Current:\r\n\t"
+					"Now: %6.3g\r\n\t"
+					"Samples: %10u\r\n\t"
+					"Mean: %6.4g\r\n\t"
+//					"StdDev: %#7.3g\r\n\t"
+					"Min: %6.3g\r\n\t"
+					"Max: %6.3g\r\n", Bplus_amp(),
+					RS_NumDataValues(&Bplus_amp_stats),
+					RS_Mean(&Bplus_amp_stats),
+//					RS_StandardDeviation(&Bplus_amp_stats),
+					RS_Min(&Bplus_amp_stats), RS_Max(&Bplus_amp_stats));
 			fflush(stdout);
 //			cnsl_dispatch(&cnsl_entry_evt);
+			break;
+		case 'r':
+			printf("\r\n");
+			ResetStats();
+			printf("Statistics reset\r\n");
 			break;
 		case '4':
 		case 'v':
 			printf("\r\n");
 			cnsl_tran(cnsl_show_volt_st);
+			break;
+		case '5':
+		case 'c':
+			printf("\r\n");
+			cnsl_tran(cnsl_show_curr_st);
 			break;
 		case 's':
 			printf("\r\n");
@@ -141,6 +165,30 @@ static void cnsl_show_volt_st(evt_t const *const pEvt) {
 			printf("\t%4.3g\t\r", v);
 			fflush(stdout);
 			*pOldV = v;
+		}
+		break;
+	}
+	default:
+		;
+	}
+}
+static void cnsl_show_curr_st(evt_t const *const pEvt) {
+	float *pOldC = (float*) cnsl.buf;
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG:
+		*pOldC = 0.0;
+		printf("Current (A): [Type any key to quit]\r\n");
+		break;
+	case KEYSTROKE_SIG:
+		printf("\r\n");
+		cnsl_tran(cnsl_top_st);
+		break;
+	case PERIOD_SIG: {
+		float c = Bplus_amp();
+		if (fabs(*pOldC - c) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(c))) {
+			printf("\t%6.3g\t\r", c);
+			fflush(stdout);
+			*pOldC = c;
 		}
 		break;
 	}

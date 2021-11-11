@@ -27,7 +27,9 @@ extern RunningStat internal_temp_stats, Bplus_volt_stats, Bplus_amp_stats;
 
 float internal_temp();
 float Bplus_volt();
+float Bplus_amp();
 
 void UpdateStats();
+void ResetStats();
 
 #endif /* INC_ANALOG_H_ */
