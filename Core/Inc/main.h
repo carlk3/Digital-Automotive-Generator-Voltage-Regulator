@@ -58,6 +58,7 @@ typedef enum {
 	REG_EXIT_SIG,
 	REG_START_SIG,
 	REG_STOP_SIG,
+	REG_SLEEP_SIG,
 	KEYSTROKE_SIG,
 	PERIOD_SIG,
 	END_SIG
@@ -87,6 +88,7 @@ typedef struct evt {
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
+void SystemClock_Config(void);
 
 /* USER CODE BEGIN EFP */
 

@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include "running_stat.h"
 
+extern uint32_t regulator_period;
+
 extern float Bplus_volt_scale;
 extern uint16_t Bplus_zero;
 extern float Bplus_amp_scale;

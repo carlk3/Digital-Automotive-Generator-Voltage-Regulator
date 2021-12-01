@@ -13,4 +13,6 @@
 extern osMessageQueueId_t RegulatorEvtQHandle;
 extern osMessageQueueId_t ConsoleEvtQHandle;
 
+extern osTimerId_t PeriodHandle;
+
 #endif /* INC_FREERTOS_H_ */

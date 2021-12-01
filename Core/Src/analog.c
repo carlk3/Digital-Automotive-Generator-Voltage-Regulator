@@ -15,8 +15,8 @@ adc_raw_rec_t raw_recs;
 RunningStat internal_temp_stats, Bplus_volt_stats, Bplus_amp_stats;
 
 float internal_temp() {
-	return __LL_ADC_CALC_TEMPERATURE(3300,
-			raw_recs.internal_temp >> 4, LL_ADC_RESOLUTION_12B);
+	return __LL_ADC_CALC_TEMPERATURE(3300, raw_recs.internal_temp >> 4,
+			LL_ADC_RESOLUTION_12B);
 }
 float Bplus_volt() {
 	return raw_recs.PA4_A3_ADC1_IN9_B_VLT * Bplus_volt_scale;

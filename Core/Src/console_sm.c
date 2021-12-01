@@ -48,6 +48,9 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 				"5 or c: Show B+ current\r\n"
 				"s: start regulator\r\n"
 				"q: stop regulator\r\n"
+				"f: enable field\r\n"
+				"g: disable field\r\n"
+				"l: sleep\r\n"
 				"[Type choice]: ");
 		fflush(stdout);
 //		memset(cnsl.buf, 0, sizeof cnsl.buf);
@@ -89,13 +92,14 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 					RS_Mean(&Bplus_volt_stats),
 //					RS_StandardDeviation(&Bplus_volt_stats),
 					RS_Min(&Bplus_volt_stats), RS_Max(&Bplus_volt_stats));
-			printf("B+ Current:\r\n\t"
-					"Now: %6.3g\r\n\t"
-					"Samples: %10u\r\n\t"
-					"Mean: %6.4g\r\n\t"
+			printf(
+					"B+ Current:\r\n\t"
+							"Now: %6.3g\r\n\t"
+							"Samples: %10u\r\n\t"
+							"Mean: %6.4g\r\n\t"
 //					"StdDev: %#7.3g\r\n\t"
-					"Min: %6.3g\r\n\t"
-					"Max: %6.3g\r\n", Bplus_amp(),
+							"Min: %6.3g\r\n\t"
+							"Max: %6.3g\r\n", Bplus_amp(),
 					RS_NumDataValues(&Bplus_amp_stats),
 					RS_Mean(&Bplus_amp_stats),
 //					RS_StandardDeviation(&Bplus_amp_stats),
@@ -118,26 +122,38 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			printf("\r\n");
 			cnsl_tran(cnsl_show_curr_st);
 			break;
-		case 's':
+		case 's': {
 			printf("\r\n");
 //			enable_33_pwr(true);
-			{
-				evt_t evt = { REG_START_SIG, { 0 } };
-				osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0,
-						0);
-				assert(osOK == rc);
-			}
+			evt_t evt = { REG_START_SIG, { 0 } };
+			osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+			assert(osOK == rc);
 			break;
-		case 'q':
+		}
+		case 'q': {
 			printf("\r\n");
 //			enable_33_pwr(false);
-			{
-				evt_t evt = { REG_STOP_SIG, { 0 } };
-				osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0,
-						0);
-				assert(osOK == rc);
-			}
+			evt_t evt = { REG_STOP_SIG, { 0 } };
+			osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+			assert(osOK == rc);
 			break;
+		}
+		case 'f':
+			printf("\r\n");
+			enable_field(true);
+			printf("field enabled\r\n");
+			break;
+		case 'g':
+			printf("\r\n");
+			enable_field(false);
+			printf("field disabled\r\n");
+			break;
+		case 'l': {
+			evt_t evt = { REG_SLEEP_SIG, { 0 } };
+			osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+			assert(osOK == rc);
+			break;
+		}
 //		case '2':
 //		case '3':
 		default:
@@ -186,7 +202,7 @@ static void cnsl_show_curr_st(evt_t const *const pEvt) {
 	case PERIOD_SIG: {
 		float c = Bplus_amp();
 		if (fabs(*pOldC - c) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(c))) {
-			printf("\t%6.3g\t\r", c);
+			printf("\t%6.3g        \t\r", c);
 			fflush(stdout);
 			*pOldC = c;
 		}

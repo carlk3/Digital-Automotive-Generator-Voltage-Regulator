@@ -1,8 +1,10 @@
 #include "global.h"
 
+uint32_t regulator_period =  10; // ms
+
 float Bplus_volt_scale = 6.87f / 34060; // voltmeter / raw adc sample
 
-uint16_t Bplus_zero = 49870;
+uint16_t Bplus_zero = 49880;
 
 // 1.0a 50130
 //     -49866

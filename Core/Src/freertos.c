@@ -26,9 +26,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include <stdio.h>
-
-//#include "usart.h"
 #include "console_sm.h"
 #include "regulator_sm.h"
 #include "analog.h"
@@ -153,6 +150,29 @@ void vApplicationMallocFailedHook(void) {
 }
 /* USER CODE END 5 */
 
+/* USER CODE BEGIN PREPOSTSLEEP */
+
+
+__weak void PreSleepProcessing(uint32_t ulExpectedIdleTime)
+{
+	/* place for user code */
+
+	/* configPRE_SLEEP_PROCESSING() can
+	 set its parameter to 0 to indicate that its implementation contains
+	 its own wait for interrupt or wait for event instruction, and so wfi
+	 should not be executed again. */
+//	ulExpectedIdleTime = 0;
+//
+//	HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFE);
+}
+
+__weak void PostSleepProcessing(uint32_t ulExpectedIdleTime)
+{
+/* place for user code */
+	SystemClock_Config();
+}
+/* USER CODE END PREPOSTSLEEP */
+
 /**
   * @brief  FreeRTOS initialization
   * @param  None
@@ -179,7 +199,6 @@ void MX_FREERTOS_Init(void) {
 	/* start timers, add new ones, ... */
 
 //  osStatus_t osTimerStart(osTimerId_t timer_id, uint32_t ticks)
-  osTimerStart(PeriodHandle, 10); // FIXME: should be configurable.
 
   /* USER CODE END RTOS_TIMERS */
 
