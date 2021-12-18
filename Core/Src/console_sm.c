@@ -51,6 +51,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 				"f: enable field\r\n"
 				"g: disable field\r\n"
 				"l: sleep\r\n"
+				"d: test SD card\r\n"
 				"[Type choice]: ");
 		fflush(stdout);
 //		memset(cnsl.buf, 0, sizeof cnsl.buf);
@@ -152,6 +153,11 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			evt_t evt = { REG_SLEEP_SIG, { 0 } };
 			osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
 			assert(osOK == rc);
+			break;
+		}
+		case 'd': {
+			extern int lliot(size_t pnum);
+			lliot(0);
 			break;
 		}
 //		case '2':

@@ -250,6 +250,17 @@ void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
 
 }
 
+void my_assert_func(const char *file, int line, const char *func,
+                    const char *pred) {
+    printf("%s: assertion \"%s\" failed: file \"%s\", line %d, function: %s\n",
+        pcTaskGetName(NULL), pred, file, line, func);
+    fflush(stdout);
+    vTaskSuspendAll();
+    taskDISABLE_INTERRUPTS();
+    for( ;; ) __BKPT(3); // Stop in GUI as if at a breakpoint (if debugging,
+                     // otherwise loop forever)
+}
+
 /* USER CODE END 4 */
 
  /**

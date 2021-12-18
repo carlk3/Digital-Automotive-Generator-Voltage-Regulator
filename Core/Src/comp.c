@@ -41,7 +41,7 @@ void MX_COMP1_Init(void)
   hcomp1.Init.InvertingInput = COMP_INPUT_MINUS_1_4VREFINT;
   hcomp1.Init.NonInvertingInput = COMP_INPUT_PLUS_IO3;
   hcomp1.Init.OutputPol = COMP_OUTPUTPOL_NONINVERTED;
-  hcomp1.Init.Hysteresis = COMP_HYSTERESIS_NONE;
+  hcomp1.Init.Hysteresis = COMP_HYSTERESIS_HIGH;
   hcomp1.Init.BlankingSrce = COMP_BLANKINGSRC_NONE;
   hcomp1.Init.Mode = COMP_POWERMODE_ULTRALOWPOWER;
   hcomp1.Init.TriggerMode = COMP_TRIGGERMODE_EVENT_RISING;

@@ -51,7 +51,10 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, D10___SPI_SS_Pin|D2___Red_LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(D10___SPI_SS_GPIO_Port, D10___SPI_SS_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(D2___Red_LED_GPIO_Port, D2___Red_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, D5___Regulator_Switch_Control_Pin|D4___3_3v_On_Off_Pin, GPIO_PIN_RESET);
@@ -59,7 +62,7 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = D9___Card_Detect_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(D9___Card_Detect_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA9 PA10 */

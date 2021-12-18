@@ -88,10 +88,9 @@ typedef struct evt {
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
-void SystemClock_Config(void);
 
 /* USER CODE BEGIN EFP */
-
+void SystemClock_Config(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -115,6 +114,12 @@ void SystemClock_Config(void);
 #define D10___SPI_SS_GPIO_Port GPIOA
 #define D2___Red_LED_Pin GPIO_PIN_12
 #define D2___Red_LED_GPIO_Port GPIOA
+#define SPI1_SCK_Pin GPIO_PIN_3
+#define SPI1_SCK_GPIO_Port GPIOB
+#define SPI1_MISO_Pin GPIO_PIN_4
+#define SPI1_MISO_GPIO_Port GPIOB
+#define SPI1_MOSI_Pin GPIO_PIN_5
+#define SPI1_MOSI_GPIO_Port GPIOB
 #define D5___Regulator_Switch_Control_Pin GPIO_PIN_6
 #define D5___Regulator_Switch_Control_GPIO_Port GPIOB
 #define D4___3_3v_On_Off_Pin GPIO_PIN_7

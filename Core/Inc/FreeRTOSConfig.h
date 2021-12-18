@@ -72,7 +72,7 @@
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
 #define configMAX_PRIORITIES                     ( 56 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)8192)
+#define configTOTAL_HEAP_SIZE                    ((size_t)16384)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configGENERATE_RUN_TIME_STATS            1
 #define configUSE_TRACE_FACILITY                 1
@@ -84,8 +84,8 @@
 #define configUSE_RECURSIVE_MUTEXES              1
 #define configUSE_MALLOC_FAILED_HOOK             1
 #define configUSE_COUNTING_SEMAPHORES            1
+#define configENABLE_BACKWARD_COMPATIBILITY      0
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION  0
-#define configUSE_TICKLESS_IDLE                  1
 #define configUSE_POSIX_ERRNO                    1
 /* USER CODE BEGIN MESSAGE_BUFFER_LENGTH_TYPE */
 /* Defaults to size_t for backward compatibility, but can be changed
@@ -165,7 +165,9 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
 /* USER CODE BEGIN 1 */
-#define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );}
+//#define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );}
+void my_assert_func(const char *file, int line, const char *func, const char *pred);
+#define configASSERT(__e) ((__e) ? (void)0 : my_assert_func(__FILE__, __LINE__, __func__, #__e))
 /* USER CODE END 1 */
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
@@ -186,22 +188,5 @@ standard names. */
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
 /* USER CODE END Defines */
-
-#if defined(__ICCARM__) || defined(__CC_ARM) || defined(__GNUC__)
-void PreSleepProcessing(uint32_t ulExpectedIdleTime);
-void PostSleepProcessing(uint32_t ulExpectedIdleTime);
-#endif /* defined(__ICCARM__) || defined(__CC_ARM) || defined(__GNUC__) */
-
-/* The configPRE_SLEEP_PROCESSING() and configPOST_SLEEP_PROCESSING() macros
-allow the application writer to add additional code before and after the MCU is
-placed into the low power state respectively. */
-#if configUSE_TICKLESS_IDLE == 1
-#define configPRE_SLEEP_PROCESSING(__x__)                           \
-                                       do {                         \
-                                         __x__ = 0;                 \
-                                         PreSleepProcessing(__x__); \
-                                      }while(0)
-#define configPOST_SLEEP_PROCESSING                       PostSleepProcessing
-#endif /* configUSE_TICKLESS_IDLE == 1 */
 
 #endif /* FREERTOS_CONFIG_H */

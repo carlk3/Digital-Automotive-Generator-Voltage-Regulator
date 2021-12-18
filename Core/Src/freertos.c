@@ -32,6 +32,9 @@
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
+typedef StaticQueue_t osStaticMessageQDef_t;
+typedef StaticTimer_t osStaticTimerDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -52,39 +55,69 @@
 /* USER CODE END Variables */
 /* Definitions for Logger */
 osThreadId_t LoggerHandle;
+uint32_t LoggerBuffer[ 128 ];
+osStaticThreadDef_t LoggerControlBlock;
 const osThreadAttr_t Logger_attributes = {
   .name = "Logger",
-  .stack_size = 128 * 4,
+  .cb_mem = &LoggerControlBlock,
+  .cb_size = sizeof(LoggerControlBlock),
+  .stack_mem = &LoggerBuffer[0],
+  .stack_size = sizeof(LoggerBuffer),
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Console */
 osThreadId_t ConsoleHandle;
+uint32_t ConsoleBuffer[ 3192 ];
+osStaticThreadDef_t ConsoleControlBlock;
 const osThreadAttr_t Console_attributes = {
   .name = "Console",
-  .stack_size = 256 * 4,
+  .cb_mem = &ConsoleControlBlock,
+  .cb_size = sizeof(ConsoleControlBlock),
+  .stack_mem = &ConsoleBuffer[0],
+  .stack_size = sizeof(ConsoleBuffer),
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Regulator */
 osThreadId_t RegulatorHandle;
+uint32_t RegulatorBuffer[ 256 ];
+osStaticThreadDef_t RegulatorControlBlock;
 const osThreadAttr_t Regulator_attributes = {
   .name = "Regulator",
-  .stack_size = 128 * 4,
+  .cb_mem = &RegulatorControlBlock,
+  .cb_size = sizeof(RegulatorControlBlock),
+  .stack_mem = &RegulatorBuffer[0],
+  .stack_size = sizeof(RegulatorBuffer),
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for RegulatorEvtQ */
 osMessageQueueId_t RegulatorEvtQHandle;
+uint8_t RegulatorEvtQBuffer[ 32 * sizeof( evt_t ) ];
+osStaticMessageQDef_t RegulatorEvtQControlBlock;
 const osMessageQueueAttr_t RegulatorEvtQ_attributes = {
-  .name = "RegulatorEvtQ"
+  .name = "RegulatorEvtQ",
+  .cb_mem = &RegulatorEvtQControlBlock,
+  .cb_size = sizeof(RegulatorEvtQControlBlock),
+  .mq_mem = &RegulatorEvtQBuffer,
+  .mq_size = sizeof(RegulatorEvtQBuffer)
 };
 /* Definitions for ConsoleEvtQ */
 osMessageQueueId_t ConsoleEvtQHandle;
+uint8_t ConsoleEvtQBuffer[ 16 * sizeof( evt_t ) ];
+osStaticMessageQDef_t ConsoleEvtQControlBlock;
 const osMessageQueueAttr_t ConsoleEvtQ_attributes = {
-  .name = "ConsoleEvtQ"
+  .name = "ConsoleEvtQ",
+  .cb_mem = &ConsoleEvtQControlBlock,
+  .cb_size = sizeof(ConsoleEvtQControlBlock),
+  .mq_mem = &ConsoleEvtQBuffer,
+  .mq_size = sizeof(ConsoleEvtQBuffer)
 };
 /* Definitions for Period */
 osTimerId_t PeriodHandle;
+osStaticTimerDef_t PeriodControlBlock;
 const osTimerAttr_t Period_attributes = {
-  .name = "Period"
+  .name = "Period",
+  .cb_mem = &PeriodControlBlock,
+  .cb_size = sizeof(PeriodControlBlock),
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,7 +136,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 void configureTimerForRunTimeStats(void);
 unsigned long getRunTimeCounterValue(void);
 void vApplicationTickHook(void);
-void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
+void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName);
 void vApplicationMallocFailedHook(void);
 
 /* USER CODE BEGIN 1 */
@@ -128,10 +161,11 @@ void vApplicationTickHook(void) {
 /* USER CODE END 3 */
 
 /* USER CODE BEGIN 4 */
-void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName) {
+void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) {
 	/* Run time stack overflow checking is performed if
 	 configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
 	 called if a stack overflow is detected. */
+	configASSERT(!"Stack Overflow!\r\n");
 }
 /* USER CODE END 4 */
 
@@ -147,31 +181,9 @@ void vApplicationMallocFailedHook(void) {
 	 FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
 	 to query the size of free heap space that remains (although it does not
 	 provide information on how the remaining heap might be fragmented). */
+	configASSERT(!"Malloc Failed!\r\n");
 }
 /* USER CODE END 5 */
-
-/* USER CODE BEGIN PREPOSTSLEEP */
-
-
-__weak void PreSleepProcessing(uint32_t ulExpectedIdleTime)
-{
-	/* place for user code */
-
-	/* configPRE_SLEEP_PROCESSING() can
-	 set its parameter to 0 to indicate that its implementation contains
-	 its own wait for interrupt or wait for event instruction, and so wfi
-	 should not be executed again. */
-//	ulExpectedIdleTime = 0;
-//
-//	HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFE);
-}
-
-__weak void PostSleepProcessing(uint32_t ulExpectedIdleTime)
-{
-/* place for user code */
-	SystemClock_Config();
-}
-/* USER CODE END PREPOSTSLEEP */
 
 /**
   * @brief  FreeRTOS initialization
