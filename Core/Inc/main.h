@@ -61,6 +61,7 @@ typedef enum {
 	REG_SLEEP_SIG,
 	KEYSTROKE_SIG,
 	PERIOD_SIG,
+	PERIOD_10HZ_SIG,
 	END_SIG
 } sig_t;
 typedef union {
@@ -108,8 +109,6 @@ void SystemClock_Config(void);
 #define D3___ADC1_IN15_GPIO_Port GPIOB
 #define D6___ADC1_IN16_Pin GPIO_PIN_1
 #define D6___ADC1_IN16_GPIO_Port GPIOB
-#define D9___Card_Detect_Pin GPIO_PIN_8
-#define D9___Card_Detect_GPIO_Port GPIOA
 #define D10___SPI_SS_Pin GPIO_PIN_11
 #define D10___SPI_SS_GPIO_Port GPIOA
 #define D2___Red_LED_Pin GPIO_PIN_12

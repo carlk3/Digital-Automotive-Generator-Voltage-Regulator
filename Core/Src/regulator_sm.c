@@ -67,6 +67,8 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 
 static void reg_idle_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
+	case REG_ENTRY_SIG:
+		break;
 	case REG_START_SIG:
 		reg_tran(reg_run_st);
 		break;

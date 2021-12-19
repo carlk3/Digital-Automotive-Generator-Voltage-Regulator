@@ -29,6 +29,7 @@
 #include "console_sm.h"
 #include "regulator_sm.h"
 #include "analog.h"
+#include "global.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -119,6 +120,14 @@ const osTimerAttr_t Period_attributes = {
   .cb_mem = &PeriodControlBlock,
   .cb_size = sizeof(PeriodControlBlock),
 };
+/* Definitions for Period10Hz */
+osTimerId_t Period10HzHandle;
+osStaticTimerDef_t Period10HzControlBlock;
+const osTimerAttr_t Period10Hz_attributes = {
+  .name = "Period10Hz",
+  .cb_mem = &Period10HzControlBlock,
+  .cb_size = sizeof(Period10HzControlBlock),
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -129,6 +138,7 @@ void LoggerTask(void *argument);
 void ConsoleTask(void *argument);
 void RegulatorTask(void *argument);
 void PeriodCallback(void *argument);
+void Period10HzCallback(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -207,10 +217,14 @@ void MX_FREERTOS_Init(void) {
   /* creation of Period */
   PeriodHandle = osTimerNew(PeriodCallback, osTimerPeriodic, NULL, &Period_attributes);
 
+  /* creation of Period10Hz */
+  Period10HzHandle = osTimerNew(Period10HzCallback, osTimerPeriodic, NULL, &Period10Hz_attributes);
+
   /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
 
-//  osStatus_t osTimerStart(osTimerId_t timer_id, uint32_t ticks)
+  	//osStatus_t osTimerStart(osTimerId_t timer_id, uint32_t ticks)
+	osTimerStart(Period10HzHandle, period10Hz);
 
   /* USER CODE END RTOS_TIMERS */
 
@@ -313,11 +327,21 @@ void PeriodCallback(void *argument)
 	evt_t evt = { PERIOD_SIG, { 0 } };
 	osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
 	assert(osOK == rc);
-	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
-	assert(osOK == rc);
+//	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
+//	assert(osOK == rc);
 
 	UpdateStats();
   /* USER CODE END PeriodCallback */
+}
+
+/* Period10HzCallback function */
+void Period10HzCallback(void *argument)
+{
+  /* USER CODE BEGIN Period10HzCallback */
+	evt_t evt = { PERIOD_10HZ_SIG, { 0 } };
+	osStatus_t rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
+	assert(osOK == rc);
+  /* USER CODE END Period10HzCallback */
 }
 
 /* Private application code --------------------------------------------------*/

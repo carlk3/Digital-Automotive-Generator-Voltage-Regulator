@@ -48,6 +48,7 @@
 #include "dma.h"
 #include "rtc.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -126,6 +127,7 @@ int main(void)
   MX_SPI1_Init();
   MX_RTC_Init();
   MX_COMP1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
 	setbuf(stdout, NULL); // unbuffered stdout
@@ -148,6 +150,10 @@ int main(void)
 		/* Initialization Error */
 		Error_Handler();
 	}
+
+	// Start the TIMER TIM1 in the Input capture interrupt mode.
+	// This is the timer for measuring frequency on PA8 (D9)
+	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
 
   /* USER CODE END 2 */
 

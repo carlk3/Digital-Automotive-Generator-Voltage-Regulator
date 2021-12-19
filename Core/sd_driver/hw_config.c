@@ -52,9 +52,9 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .spi = &spis[0],          // Pointer to the SPI driving this card
 		.ss_port = D10___SPI_SS_GPIO_Port,
         .ss_pin = D10___SPI_SS_Pin,            // The SPI slave select GPIO for this SD card
-		.use_card_detect = true,
-		.card_detect_port = D9___Card_Detect_GPIO_Port,
-        .card_detect_pin = D9___Card_Detect_Pin,   // Card detect
+		.use_card_detect = false,
+//		.card_detect_port = D9___Card_Detect_GPIO_Port,
+//        .card_detect_pin = D9___Card_Detect_Pin,   // Card detect
         .card_detected_true = 1,  // What the GPIO read returns when a card is
                                   // present. Use -1 if there is no card detect.
         // Following attributes are dynamically assigned

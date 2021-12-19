@@ -10,6 +10,7 @@
 #include "freertos.h"
 #include "analog.h"
 #include "digital.h"
+#include "tim.h"
 
 typedef struct cnsl_t cnsl_t;
 typedef void (*cnsl_state_t)(evt_t const* const);
@@ -35,6 +36,7 @@ static void cnsl_tran(cnsl_state_t target) {
 
 static void cnsl_show_volt_st(evt_t const *const pEvt);
 static void cnsl_show_curr_st(evt_t const *const pEvt);
+static void cnsl_show_tach_st(evt_t const *const pEvt);
 
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
@@ -46,6 +48,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 //				"3: Configure\r\n"
 				"4 or v: Show B+ voltage\r\n"
 				"5 or c: Show B+ current\r\n"
+				"t: show RPM\r\n"
 				"s: start regulator\r\n"
 				"q: stop regulator\r\n"
 				"f: enable field\r\n"
@@ -160,6 +163,10 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			lliot(0);
 			break;
 		}
+		case 't':
+			printf("\r\n");
+			cnsl_tran(cnsl_show_tach_st);
+			break;
 //		case '2':
 //		case '3':
 		default:
@@ -171,23 +178,23 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 	}
 }
 static void cnsl_show_volt_st(evt_t const *const pEvt) {
-	float *pOldV = (float*) cnsl.buf;
+//	float *pOldV = (float*) cnsl.buf;
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		*pOldV = 0.0;
+//		*pOldV = 0.0;
 		printf("Volts: [Type any key to quit]\r\n");
 		break;
 	case KEYSTROKE_SIG:
 		printf("\r\n");
 		cnsl_tran(cnsl_top_st);
 		break;
-	case PERIOD_SIG: {
+	case PERIOD_10HZ_SIG: {
 		float v = Bplus_volt();
-		if (fabs(*pOldV - v) >= FLT_EPSILON * fmaxf(fabs(*pOldV), fabs(v))) {
+//		if (fabs(*pOldV - v) >= FLT_EPSILON * fmaxf(fabs(*pOldV), fabs(v))) {
 			printf("\t%4.3g\t\r", v);
 			fflush(stdout);
-			*pOldV = v;
-		}
+//			*pOldV = v;
+//		}
 		break;
 	}
 	default:
@@ -205,7 +212,7 @@ static void cnsl_show_curr_st(evt_t const *const pEvt) {
 		printf("\r\n");
 		cnsl_tran(cnsl_top_st);
 		break;
-	case PERIOD_SIG: {
+	case PERIOD_10HZ_SIG: {
 		float c = Bplus_amp();
 		if (fabs(*pOldC - c) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(c))) {
 			printf("\t%6.3g        \t\r", c);
@@ -218,6 +225,29 @@ static void cnsl_show_curr_st(evt_t const *const pEvt) {
 		;
 	}
 }
+
+static void cnsl_show_tach_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG:
+		printf("RPM: [Type any key to quit]\r\n");
+		break;
+	case KEYSTROKE_SIG:
+		printf("\r\n");
+		cnsl_tran(cnsl_top_st);
+		break;
+	case PERIOD_10HZ_SIG: {
+		float f = frequency();
+		// * sec/min * rev/fire
+		float rpm = f * 60 / 2;
+		printf("\t%6.1f        \t\r", rpm);
+		fflush(stdout);
+		break;
+	}
+	default:
+		;
+	}
+}
+
 
 //// calculate the mean iteratively
 //++stats->num_30min;
