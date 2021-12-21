@@ -151,6 +151,9 @@ static float frequency_ = 0;
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+
+	/* See https://controllerstech.com/input-capture-in-stm32/ */
+
 	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
 	{
 		if (Is_First_Captured==0) // if the first rising edge is not captured

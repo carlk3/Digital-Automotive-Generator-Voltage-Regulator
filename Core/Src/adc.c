@@ -171,7 +171,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     PB0     ------> ADC1_IN15
     PB1     ------> ADC1_IN16
     */
-    GPIO_InitStruct.Pin = A2___B__Current_Sense_Pin|A3___B__Voltage_Sense_Pin|A4___D__Voltage_Sense_Pin|A6__ADC1_IN11_Pin
+    GPIO_InitStruct.Pin = A2___B__Current_Sense_Pin|A3___B__Voltage_Sense_Pin|A4___D__Voltage_Sense_Pin|A5__ADC1_IN11_Pin
                           |A6___ADC1_IN12_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -226,7 +226,7 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
     PB0     ------> ADC1_IN15
     PB1     ------> ADC1_IN16
     */
-    HAL_GPIO_DeInit(GPIOA, A2___B__Current_Sense_Pin|A3___B__Voltage_Sense_Pin|A4___D__Voltage_Sense_Pin|A6__ADC1_IN11_Pin
+    HAL_GPIO_DeInit(GPIOA, A2___B__Current_Sense_Pin|A3___B__Voltage_Sense_Pin|A4___D__Voltage_Sense_Pin|A5__ADC1_IN11_Pin
                           |A6___ADC1_IN12_Pin);
 
     HAL_GPIO_DeInit(GPIOB, D3___ADC1_IN15_Pin|D6___ADC1_IN16_Pin);

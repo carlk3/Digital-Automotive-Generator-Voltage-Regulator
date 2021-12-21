@@ -37,6 +37,7 @@ static void cnsl_tran(cnsl_state_t target) {
 static void cnsl_show_volt_st(evt_t const *const pEvt);
 static void cnsl_show_curr_st(evt_t const *const pEvt);
 static void cnsl_show_tach_st(evt_t const *const pEvt);
+static void cnsl_show_adc11_st(evt_t const *const pEvt);
 
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
@@ -49,6 +50,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 				"4 or v: Show B+ voltage\r\n"
 				"5 or c: Show B+ current\r\n"
 				"t: show RPM\r\n"
+				"e: Show ADC11 as temperature\r\n"
 				"s: start regulator\r\n"
 				"q: stop regulator\r\n"
 				"f: enable field\r\n"
@@ -89,7 +91,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 							"Mean: %4.4g\r\n\t"
 //					"StdDev: %#7.3g\r\n\t"
 							"Min: %4.3g\r\n\t"
-							"Max: %4.3g\r\n\r\n",
+							"Max: %4.3g\r\n",
 			// line up: "\e[1A\e[1A"
 					Bplus_volt(),
 //					RS_NumDataValues(&Bplus_volt_stats),
@@ -167,6 +169,10 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			printf("\r\n");
 			cnsl_tran(cnsl_show_tach_st);
 			break;
+		case 'e':
+			printf("\r\n");
+			cnsl_tran(cnsl_show_adc11_st);
+			break;
 //		case '2':
 //		case '3':
 		default:
@@ -208,10 +214,18 @@ static void cnsl_show_curr_st(evt_t const *const pEvt) {
 		*pOldC = 0.0;
 		printf("Current (A): [Type any key to quit]\r\n");
 		break;
-	case KEYSTROKE_SIG:
-		printf("\r\n");
-		cnsl_tran(cnsl_top_st);
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		switch (tolower(c)) {
+		case '\r':
+		case '\n':
+			break;
+		default:
+			printf("\r\n");
+			cnsl_tran(cnsl_top_st);
+		}
 		break;
+	}
 	case PERIOD_10HZ_SIG: {
 		float c = Bplus_amp();
 		if (fabs(*pOldC - c) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(c))) {
@@ -227,26 +241,81 @@ static void cnsl_show_curr_st(evt_t const *const pEvt) {
 }
 
 static void cnsl_show_tach_st(evt_t const *const pEvt) {
+	float *pOldF = (float*) cnsl.buf;
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
+		*pOldF = 0.0;
 		printf("RPM: [Type any key to quit]\r\n");
 		break;
-	case KEYSTROKE_SIG:
-		printf("\r\n");
-		cnsl_tran(cnsl_top_st);
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		switch (tolower(c)) {
+		case '\r':
+		case '\n':
+			break;
+		default:
+			printf("\r\n");
+			cnsl_tran(cnsl_top_st);
+		}
 		break;
+	}
 	case PERIOD_10HZ_SIG: {
 		float f = frequency();
-		// * sec/min * rev/fire
-		float rpm = f * 60 / 2;
-		printf("\t%6.1f        \t\r", rpm);
-		fflush(stdout);
+		if (fabs(*pOldF - f) >= FLT_EPSILON * fmaxf(fabs(*pOldF), fabs(f))) {
+			// * sec/min * rev/fire
+			float rpm = f * 60 / 2;
+			printf("\t%6.1f        \t\r", rpm);
+			fflush(stdout);
+			*pOldF = f;
+		}
 		break;
 	}
 	default:
 		;
 	}
 }
+
+// TMP36 hooked to A5
+static void cnsl_show_adc11_st(evt_t const *const pEvt) {
+	float *pOldC = (float*) cnsl.buf;
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG:
+		*pOldC = 0.0;
+		printf("Temperature °C: [Type any key to quit]\r\n");
+		break;
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		switch (tolower(c)) {
+		case '\r':
+		case '\n':
+			break;
+		default:
+			printf("\r\n");
+			cnsl_tran(cnsl_top_st);
+		}
+		break;
+	}
+	case PERIOD_10HZ_SIG: {
+		// Temp in °C = [(Vout in mV) - 500] / 10
+		// Vref = 3.3
+		// 16 bits with oversampling
+		// 3.3/65535 volts/n
+		// Scale Factor, TMP36 −40°C ≤ TA ≤ +125°C 10 mV/°C
+		// TMP36 Output Voltage TA = 25°C 750 mV
+		float Vout = raw_recs.PA6_A5_ADC1_IN11 * 3.3f/65535;
+		float temp = (Vout * 1000 - 500) / 10;
+		if (fabs(*pOldC - temp) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(temp))) {
+			printf("\t%6.3g        \t\r", temp);
+			fflush(stdout);
+			*pOldC = temp;
+		}
+		break;
+	}
+	default:
+		;
+	}
+}
+
 
 
 //// calculate the mean iteratively

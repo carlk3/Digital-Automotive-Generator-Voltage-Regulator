@@ -101,8 +101,8 @@ void SystemClock_Config(void);
 #define A3___B__Voltage_Sense_GPIO_Port GPIOA
 #define A4___D__Voltage_Sense_Pin GPIO_PIN_5
 #define A4___D__Voltage_Sense_GPIO_Port GPIOA
-#define A6__ADC1_IN11_Pin GPIO_PIN_6
-#define A6__ADC1_IN11_GPIO_Port GPIOA
+#define A5__ADC1_IN11_Pin GPIO_PIN_6
+#define A5__ADC1_IN11_GPIO_Port GPIOA
 #define A6___ADC1_IN12_Pin GPIO_PIN_7
 #define A6___ADC1_IN12_GPIO_Port GPIOA
 #define D3___ADC1_IN15_Pin GPIO_PIN_0
