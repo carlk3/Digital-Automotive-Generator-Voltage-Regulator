@@ -10,7 +10,10 @@
 #include "freertos.h"
 #include "analog.h"
 #include "digital.h"
+#include "fs.h"
 #include "tim.h"
+//
+#include "printf.h"
 
 typedef struct cnsl_t cnsl_t;
 typedef void (*cnsl_state_t)(evt_t const* const);
@@ -38,6 +41,7 @@ static void cnsl_show_volt_st(evt_t const *const pEvt);
 static void cnsl_show_curr_st(evt_t const *const pEvt);
 static void cnsl_show_tach_st(evt_t const *const pEvt);
 static void cnsl_show_adc11_st(evt_t const *const pEvt);
+static void cnsl_run_littlefs_st(evt_t const *const pEvt);
 
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
@@ -57,6 +61,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 				"g: disable field\r\n"
 				"l: sleep\r\n"
 				"d: test SD card\r\n"
+				"i: littlefs test\r\n"
 				"[Type choice]: ");
 		fflush(stdout);
 //		memset(cnsl.buf, 0, sizeof cnsl.buf);
@@ -173,6 +178,11 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			printf("\r\n");
 			cnsl_tran(cnsl_show_adc11_st);
 			break;
+		case 'i':
+			printf("\r\n");
+			cnsl_tran(cnsl_run_littlefs_st);
+			break;
+
 //		case '2':
 //		case '3':
 		default:
@@ -316,6 +326,19 @@ static void cnsl_show_adc11_st(evt_t const *const pEvt) {
 	}
 }
 
+static void cnsl_run_littlefs_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG:
+		fs_test();
+		break;
+	case KEYSTROKE_SIG: {
+			cnsl_tran(cnsl_top_st);
+		break;
+	}
+	default:
+		;
+	}
+}
 
 
 //// calculate the mean iteratively

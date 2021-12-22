@@ -20,6 +20,8 @@ specific language governing permissions and limitations under the License.
 //
 #include "dr_spi.h"
 
+#include "printf.h"
+
 #define myASSERT configASSERT
 #define DBG_PRINTF printf
 

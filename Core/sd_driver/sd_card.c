@@ -173,10 +173,7 @@ specific language governing permissions and limitations under the License.
 //
 #include "sd_card.h"
 //
-//#include "ff.h" /* Obtains integer types */
-//
-//#include "diskio.h" /* Declarations of disk functions */ // Needed for
-// STA_NOINIT, ...
+#include "printf.h"
 
 #define SD_CRC_ENABLED 1
 

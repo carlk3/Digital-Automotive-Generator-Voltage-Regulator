@@ -293,7 +293,7 @@ void ConsoleTask(void *argument)
 	for (;;) {
 		// osStatus_t 	osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *msg_prio, uint32_t timeout)
 		osStatus_t rc = osMessageQueueGet(ConsoleEvtQHandle, &evt, 0, osWaitForever);
-		assert(osOK == rc);
+		configASSERT(osOK == rc);
 		cnsl_dispatch(&evt);
 	}
   /* USER CODE END ConsoleTask */

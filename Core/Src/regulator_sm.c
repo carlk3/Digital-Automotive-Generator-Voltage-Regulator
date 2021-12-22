@@ -14,6 +14,8 @@
 #include "digital.h"
 #include "global.h"
 #include "regulator_sm.h"
+//
+#include "printf.h"
 
 typedef struct reg_t reg_t;
 typedef void (*reg_state_t)(evt_t const* const);

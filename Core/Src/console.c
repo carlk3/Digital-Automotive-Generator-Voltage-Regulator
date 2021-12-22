@@ -19,6 +19,11 @@ int __io_putchar(int ch) {
 	return ch;
 }
 
+// For Marco Paland's printf
+void _putchar(char character) {
+	__io_putchar(character);
+}
+
 /**
  * @brief  Function called from USART IRQ Handler when RXNE flag is set
  *         Function is in charge of reading character received on USART RX line.
@@ -41,6 +46,6 @@ void USART_CharReception_Callback() {
 		evt_t evt =
 			{ KEYSTROKE_SIG, .content.data = received_char };
 		osStatus_t rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
-		assert(osOK == rc);
+		configASSERT(osOK == rc);
 	}
 }

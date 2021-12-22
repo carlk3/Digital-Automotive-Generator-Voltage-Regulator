@@ -1,0 +1,6 @@
+[submodule "Core/littlefs"]
+	path = Core/littlefs
+	url = git@github.com:littlefs-project/littlefs.git
+[submodule "Core/printf"]
+	path = Core/printf
+	url = git@github.com:mpaland/printf.git
