@@ -1,7 +1,11 @@
 #include "global.h"
 
+float Vlim = 7.5;
+float Ilim = 45;
+float Plim = 180;
+
 const uint32_t regulator_period =  10; // ms
-const uint32_t period10Hz =  100; // ms
+const uint32_t period1Hz =  1000; // ms
 
 float Bplus_volt_scale = 6.87f / 34060; // voltmeter / raw adc sample
 

@@ -8,7 +8,7 @@
 
 #include "main.h"
 #include "freertos.h"
-#include "analog.h"
+#include "data.h"
 #include "digital.h"
 #include "fs.h"
 #include "tim.h"
@@ -73,15 +73,17 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 		fflush(stdout);
 		switch (tolower(c)) {
 		case '1':
-		case 'n':
-			printf("\r\nUptime: %lu seconds\r\n", xTaskGetTickCount() / 1000); // FIXME: overflows
+		case 'n': {
+			data_rec_t data;
+			get_data(&data);
+			printf("\r\nUptime: %lu seconds\r\n", uptime);
 			printf("Internal Temperature:\r\n\t"
 					"Now: %4.2g\r\n\t"
 //					"Samples: %10u\r\n\t"
 					"Mean: %4.3g\r\n\t"
 //					"StdDev: %#7.3g\r\n\t"
 					"Min: %6.4g\r\n\t"
-					"Max: %6.4g\r\n", internal_temp(),
+					"Max: %6.4g\r\n", data.internal_temp,
 //					RS_NumDataValues(&internal_temp_stats),
 					RS_Mean(&internal_temp_stats),
 //					RS_StandardDeviation(&internal_temp_stats),
@@ -98,7 +100,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 							"Min: %4.3g\r\n\t"
 							"Max: %4.3g\r\n",
 			// line up: "\e[1A\e[1A"
-					Bplus_volt(),
+					data.Bvolts,
 //					RS_NumDataValues(&Bplus_volt_stats),
 					RS_Mean(&Bplus_volt_stats),
 //					RS_StandardDeviation(&Bplus_volt_stats),
@@ -110,7 +112,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 							"Mean: %6.4g\r\n\t"
 //					"StdDev: %#7.3g\r\n\t"
 							"Min: %6.3g\r\n\t"
-							"Max: %6.3g\r\n", Bplus_amp(),
+							"Max: %6.3g\r\n", data.Bamps,
 					RS_NumDataValues(&Bplus_amp_stats),
 					RS_Mean(&Bplus_amp_stats),
 //					RS_StandardDeviation(&Bplus_amp_stats),
@@ -118,9 +120,10 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			fflush(stdout);
 //			cnsl_dispatch(&cnsl_entry_evt);
 			break;
+		}
 		case 'r':
 			printf("\r\n");
-			ResetStats();
+			reset_stats();
 			printf("Statistics reset\r\n");
 			break;
 		case '4':
@@ -204,13 +207,10 @@ static void cnsl_show_volt_st(evt_t const *const pEvt) {
 		printf("\r\n");
 		cnsl_tran(cnsl_top_st);
 		break;
-	case PERIOD_10HZ_SIG: {
-		float v = Bplus_volt();
-//		if (fabs(*pOldV - v) >= FLT_EPSILON * fmaxf(fabs(*pOldV), fabs(v))) {
-			printf("\t%4.3g\t\r", v);
-			fflush(stdout);
-//			*pOldV = v;
-//		}
+	case PERIOD_1HZ_SIG: {
+		data_rec_t data;
+		get_data_1sec_avg(&data);
+		printf("%4.3g\r\n", data.Bvolts);
 		break;
 	}
 	default:
@@ -218,10 +218,8 @@ static void cnsl_show_volt_st(evt_t const *const pEvt) {
 	}
 }
 static void cnsl_show_curr_st(evt_t const *const pEvt) {
-	float *pOldC = (float*) cnsl.buf;
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		*pOldC = 0.0;
 		printf("Current (A): [Type any key to quit]\r\n");
 		break;
 	case KEYSTROKE_SIG: {
@@ -236,13 +234,10 @@ static void cnsl_show_curr_st(evt_t const *const pEvt) {
 		}
 		break;
 	}
-	case PERIOD_10HZ_SIG: {
-		float c = Bplus_amp();
-		if (fabs(*pOldC - c) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(c))) {
-			printf("\t%6.3g        \t\r", c);
-			fflush(stdout);
-			*pOldC = c;
-		}
+	case PERIOD_1HZ_SIG: {
+		data_rec_t data;
+		get_data_1sec_avg(&data);
+		printf("%6.3g\r\n", data.Bamps);
 		break;
 	}
 	default:
@@ -251,10 +246,8 @@ static void cnsl_show_curr_st(evt_t const *const pEvt) {
 }
 
 static void cnsl_show_tach_st(evt_t const *const pEvt) {
-	float *pOldF = (float*) cnsl.buf;
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		*pOldF = 0.0;
 		printf("RPM: [Type any key to quit]\r\n");
 		break;
 	case KEYSTROKE_SIG: {
@@ -269,15 +262,18 @@ static void cnsl_show_tach_st(evt_t const *const pEvt) {
 		}
 		break;
 	}
-	case PERIOD_10HZ_SIG: {
-		float f = frequency();
-		if (fabs(*pOldF - f) >= FLT_EPSILON * fmaxf(fabs(*pOldF), fabs(f))) {
-			// * sec/min * rev/fire
-			float rpm = f * 60 / 2;
-			printf("\t%6.1f        \t\r", rpm);
-			fflush(stdout);
-			*pOldF = f;
-		}
+	case PERIOD_1HZ_SIG: {
+//		float f = frequency();
+//		if (fabs(*pOldF - f) >= FLT_EPSILON * fmaxf(fabs(*pOldF), fabs(f))) {
+//			// * sec/min * rev/fire
+//			float rpm = f * 60 / 2;
+//			printf("\t%6.1f        \t\r", rpm);
+//			fflush(stdout);
+//			*pOldF = f;
+//		}
+		data_rec_t data;
+		get_data_1sec_avg(&data);
+		printf("%6.1f\r\n", data.rpm);
 		break;
 	}
 	default:
@@ -287,10 +283,10 @@ static void cnsl_show_tach_st(evt_t const *const pEvt) {
 
 // TMP36 hooked to A5
 static void cnsl_show_adc11_st(evt_t const *const pEvt) {
-	float *pOldC = (float*) cnsl.buf;
+//	float *pOldC = (float*) cnsl.buf;
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		*pOldC = 0.0;
+//		*pOldC = 0.0;
 		printf("Temperature °C: [Type any key to quit]\r\n");
 		break;
 	case KEYSTROKE_SIG: {
@@ -305,20 +301,23 @@ static void cnsl_show_adc11_st(evt_t const *const pEvt) {
 		}
 		break;
 	}
-	case PERIOD_10HZ_SIG: {
+	case PERIOD_1HZ_SIG: {
 		// Temp in °C = [(Vout in mV) - 500] / 10
 		// Vref = 3.3
 		// 16 bits with oversampling
 		// 3.3/65535 volts/n
 		// Scale Factor, TMP36 −40°C ≤ TA ≤ +125°C 10 mV/°C
 		// TMP36 Output Voltage TA = 25°C 750 mV
-		float Vout = raw_recs.PA6_A5_ADC1_IN11 * 3.3f/65535;
-		float temp = (Vout * 1000 - 500) / 10;
-		if (fabs(*pOldC - temp) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(temp))) {
-			printf("\t%6.3g        \t\r", temp);
-			fflush(stdout);
-			*pOldC = temp;
-		}
+//		float Vout = raw_recs.PA6_A5_ADC1_IN11 * 3.3f/65535;
+//		float temp = (Vout * 1000 - 500) / 10;
+//		if (fabs(*pOldC - temp) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(temp))) {
+//			printf("\t%6.3g        \t\r", temp);
+//			fflush(stdout);
+//			*pOldC = temp;
+//		}
+		data_rec_t data;
+		get_data_1sec_avg(&data);
+		printf("%6.3g\r\n", data.ADC11_degC);
 		break;
 	}
 	default:

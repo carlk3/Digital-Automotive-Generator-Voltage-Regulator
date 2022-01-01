@@ -153,6 +153,7 @@ void *buff /* Buffer to send/receive control data */
 							// 	into the WORD variable that pointed by buff.
 		static WORD ss = FF_MAX_SS;
 		*(WORD*) buff = ss;
+		return RES_OK;
 	}
 	case CTRL_SYNC:
 		return RES_OK;

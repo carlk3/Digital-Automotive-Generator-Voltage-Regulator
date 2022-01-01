@@ -28,14 +28,17 @@
 /* USER CODE BEGIN Includes */
 #include "console_sm.h"
 #include "regulator_sm.h"
-#include "analog.h"
+#include "data.h"
 #include "global.h"
+//
+#include "printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticQueue_t osStaticMessageQDef_t;
 typedef StaticTimer_t osStaticTimerDef_t;
+typedef StaticSemaphore_t osStaticMutexDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -120,13 +123,21 @@ const osTimerAttr_t Period_attributes = {
   .cb_mem = &PeriodControlBlock,
   .cb_size = sizeof(PeriodControlBlock),
 };
-/* Definitions for Period10Hz */
-osTimerId_t Period10HzHandle;
-osStaticTimerDef_t Period10HzControlBlock;
-const osTimerAttr_t Period10Hz_attributes = {
-  .name = "Period10Hz",
-  .cb_mem = &Period10HzControlBlock,
-  .cb_size = sizeof(Period10HzControlBlock),
+/* Definitions for Period1Hz */
+osTimerId_t Period1HzHandle;
+osStaticTimerDef_t Period1HzControlBlock;
+const osTimerAttr_t Period1Hz_attributes = {
+  .name = "Period1Hz",
+  .cb_mem = &Period1HzControlBlock,
+  .cb_size = sizeof(Period1HzControlBlock),
+};
+/* Definitions for avg_data_mutex */
+osMutexId_t avg_data_mutexHandle;
+osStaticMutexDef_t avg_data_mutexControlBlock;
+const osMutexAttr_t avg_data_mutex_attributes = {
+  .name = "avg_data_mutex",
+  .cb_mem = &avg_data_mutexControlBlock,
+  .cb_size = sizeof(avg_data_mutexControlBlock),
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -138,7 +149,7 @@ void LoggerTask(void *argument);
 void ConsoleTask(void *argument);
 void RegulatorTask(void *argument);
 void PeriodCallback(void *argument);
-void Period10HzCallback(void *argument);
+void Period1HzCallback(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -172,9 +183,11 @@ void vApplicationTickHook(void) {
 
 /* USER CODE BEGIN 4 */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) {
+	(void)xTask;
 	/* Run time stack overflow checking is performed if
 	 configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
 	 called if a stack overflow is detected. */
+	printf("Task: %s: ", pcTaskName);
 	configASSERT(!"Stack Overflow!\r\n");
 }
 /* USER CODE END 4 */
@@ -204,6 +217,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* creation of avg_data_mutex */
+  avg_data_mutexHandle = osMutexNew(&avg_data_mutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
@@ -217,14 +233,15 @@ void MX_FREERTOS_Init(void) {
   /* creation of Period */
   PeriodHandle = osTimerNew(PeriodCallback, osTimerPeriodic, NULL, &Period_attributes);
 
-  /* creation of Period10Hz */
-  Period10HzHandle = osTimerNew(Period10HzCallback, osTimerPeriodic, NULL, &Period10Hz_attributes);
+  /* creation of Period1Hz */
+  Period1HzHandle = osTimerNew(Period1HzCallback, osTimerPeriodic, NULL, &Period1Hz_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
 
   	//osStatus_t osTimerStart(osTimerId_t timer_id, uint32_t ticks)
-	osTimerStart(Period10HzHandle, period10Hz);
+	osTimerStart(PeriodHandle, regulator_period);
+	osTimerStart(Period1HzHandle, period1Hz);
 
   /* USER CODE END RTOS_TIMERS */
 
@@ -269,6 +286,7 @@ void MX_FREERTOS_Init(void) {
 void LoggerTask(void *argument)
 {
   /* USER CODE BEGIN LoggerTask */
+	(void)argument;
 	/* Infinite loop */
 	for (;;) {
 		osDelay(1);
@@ -286,6 +304,7 @@ void LoggerTask(void *argument)
 void ConsoleTask(void *argument)
 {
   /* USER CODE BEGIN ConsoleTask */
+	(void)argument;
 //	printf("%s\r\n", __FUNCTION__);
 	evt_t evt = { CNSL_ENTRY_SIG, { 0 } };
 	cnsl_dispatch(&evt);
@@ -309,6 +328,7 @@ void ConsoleTask(void *argument)
 void RegulatorTask(void *argument)
 {
   /* USER CODE BEGIN RegulatorTask */
+	(void)argument;
 	evt_t evt = { REG_ENTRY_SIG, { 0 } };
 	reg_dispatch(&evt);
 	/* Infinite loop */
@@ -324,24 +344,25 @@ void RegulatorTask(void *argument)
 void PeriodCallback(void *argument)
 {
   /* USER CODE BEGIN PeriodCallback */
+	(void)argument;
 	evt_t evt = { PERIOD_SIG, { 0 } };
 	osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
 	assert(osOK == rc);
 //	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
 //	assert(osOK == rc);
-
-	UpdateStats();
   /* USER CODE END PeriodCallback */
 }
 
-/* Period10HzCallback function */
-void Period10HzCallback(void *argument)
+/* Period1HzCallback function */
+void Period1HzCallback(void *argument)
 {
-  /* USER CODE BEGIN Period10HzCallback */
-	evt_t evt = { PERIOD_10HZ_SIG, { 0 } };
+  /* USER CODE BEGIN Period1HzCallback */
+	(void)argument;
+	++uptime;
+	evt_t evt = { PERIOD_1HZ_SIG, { 0 } };
 	osStatus_t rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
 	assert(osOK == rc);
-  /* USER CODE END Period10HzCallback */
+  /* USER CODE END Period1HzCallback */
 }
 
 /* Private application code --------------------------------------------------*/
@@ -349,4 +370,3 @@ void Period10HzCallback(void *argument)
 
 /* USER CODE END Application */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

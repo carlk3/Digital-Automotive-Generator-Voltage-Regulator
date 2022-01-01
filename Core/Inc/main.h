@@ -61,7 +61,7 @@ typedef enum {
 	REG_SLEEP_SIG,
 	KEYSTROKE_SIG,
 	PERIOD_SIG,
-	PERIOD_10HZ_SIG,
+	PERIOD_1HZ_SIG,
 	END_SIG
 } sig_t;
 typedef union {
@@ -132,5 +132,3 @@ void SystemClock_Config(void);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

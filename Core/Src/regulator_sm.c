@@ -6,13 +6,16 @@
  */
 
 #include <stdio.h>
-
+//
 #include "freertos.h"
 #include "main.h"
 #include "stm32l4xx_hal_pwr_ex.h" // HAL_PWREx_EnterSTOP2Mode
-
+//
+#include "comp.h"
+#include "data.h"
 #include "digital.h"
 #include "global.h"
+//
 #include "regulator_sm.h"
 //
 #include "printf.h"
@@ -47,6 +50,8 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 		// See vPortSuppressTicksAndSleep in
 		//    /VReg/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
 		printf("\r\nEntering Stop Mode\r\n");
+		osTimerStop(PeriodHandle);
+		enable_33_pwr(false);
 		HAL_SuspendTick();
 		__disable_irq();
 		__DSB();
@@ -60,6 +65,8 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 		HAL_ResumeTick();
 		/* Exit with interrupts enabled. */
 		__enable_irq();
+		enable_33_pwr(true);
+		osTimerStart(PeriodHandle, regulator_period);
 		printf("\r\nExited Stop Mode\r\n");
 		break;
 	}
@@ -67,9 +74,24 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 	}
 }
 
+static void reg_failed_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case REG_ENTRY_SIG:
+		printf("Regulator entering failed state\r\n");
+		  /* Stop COMP1 (don't wake up) */
+		if (HAL_COMP_Stop(&hcomp1) != HAL_OK) {
+			Error_Handler();
+		}
+		reg_tran(reg_sleep_st);
+		break;
+	default:;
+	}
+}
+
 static void reg_idle_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
+		printf("Regulator idle\r\n");
 		break;
 	case REG_START_SIG:
 		reg_tran(reg_run_st);
@@ -77,14 +99,14 @@ static void reg_idle_st(evt_t const *const pEvt) {
 	case REG_SLEEP_SIG:
 		reg_tran(reg_sleep_st);
 		break;
+	case PERIOD_SIG:
+		break;
 	default:;
 	}
 }
 static void reg_run_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
-		enable_33_pwr(true);
-		osTimerStart(PeriodHandle, regulator_period);
 		printf("Regulator started\r\n");
 		break;
 	case REG_STOP_SIG:
@@ -93,11 +115,36 @@ static void reg_run_st(evt_t const *const pEvt) {
 	case REG_SLEEP_SIG:
 		reg_tran(reg_sleep_st);
 		break;
-	case PERIOD_SIG:
+	case PERIOD_SIG: {
+		data_rec_t data;
+		get_data(&data);
+
+		if (data.Bamps > 1.1 * Ilim && data.Bvolts < 0.1 * Vlim) {
+			// Short?
+			reg_tran(reg_failed_st);
+		}
+		if (data.Bvolts > 1.1 * Vlim && data.Bamps < 0.1 * Ilim) {
+			// Open?
+			reg_tran(reg_failed_st);
+		}
+		bool next_enable = true;
+		if (data.Bvolts * data.Bamps > Plim)
+			next_enable = false;
+		if (data.Bamps > Ilim)
+			next_enable = false;
+		if (data.Bvolts > Vlim)
+			next_enable = false;
+		enable_field(next_enable);
+
+		if (next_enable)
+			++field_on_count;
+		else
+			++field_off_count;
+		update_avgs(&data);
+		update_stats(&data);
 		break;
+	}
 	case REG_EXIT_SIG:
-		osTimerStop(PeriodHandle);
-		enable_33_pwr(false);
 		printf("Regulator stopped\r\n");
 		break;
 	default:;

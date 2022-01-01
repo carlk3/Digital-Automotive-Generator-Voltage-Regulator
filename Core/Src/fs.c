@@ -19,7 +19,7 @@ static int user_provided_block_device_read(const struct lfs_config *c,
 // Program a region in a block. The block must have previously
 // been erased. Negative error codes are propogated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
-int user_provided_block_device_prog(const struct lfs_config *c,
+static int user_provided_block_device_prog(const struct lfs_config *c,
 		lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
 	configASSERT(0 == off);
 	configASSERT(0 == size % 512);
@@ -30,14 +30,17 @@ int user_provided_block_device_prog(const struct lfs_config *c,
 // The state of an erased block is undefined. Negative error codes
 // are propogated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
-int user_provided_block_device_erase(const struct lfs_config *c,
+static int user_provided_block_device_erase(const struct lfs_config *c,
 		lfs_block_t block) {
+	(void)c;
+	(void)block;
 	return 0;
 }
 
 // Sync the state of the underlying block device. Negative error codes
 // are propogated to the user.
-int user_provided_block_device_sync(const struct lfs_config *c) {
+static int user_provided_block_device_sync(const struct lfs_config *c) {
+	(void)c;
 	return 0;
 }
 

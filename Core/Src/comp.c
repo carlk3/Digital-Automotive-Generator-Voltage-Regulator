@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    comp.c
@@ -6,17 +7,16 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2021 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
-
+/* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "comp.h"
 
@@ -101,7 +101,22 @@ void HAL_COMP_MspDeInit(COMP_HandleTypeDef* compHandle)
 }
 
 /* USER CODE BEGIN 1 */
+/**
+ * @brief  Comparator trigger callback.
+ * @param  hcomp  COMP handle
+ * @retval None
+ */
+void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
+	/* Prevent unused argument(s) compilation warning */
+	UNUSED(hcomp);
+
+	/*  Check if COMP1 output level is high */
+	if ((HAL_COMP_GetOutputLevel(&hcomp1)) == COMP_OUTPUT_LEVEL_HIGH) {
+		/* A rising edge is detected so the input voltage is higher than VREFINT */
+		printf("Comparator triggered: input voltage is higher than VREFINT\r\n");
+	} else {
+		printf("Comparator triggered: input voltage is lower than VREFINT\r\n");
+	}
+}
 
 /* USER CODE END 1 */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

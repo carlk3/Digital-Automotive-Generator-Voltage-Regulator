@@ -4,15 +4,15 @@
  *  Created on: Nov 4, 2021
  *      Author: carlk
  */
-
+//#include "freertos.h"
+//
 #include "main.h"
-#include "freertos.h"
+//
 #include "global.h"
 
 #include "analog.h"
 
 adc_raw_rec_t raw_recs;
-RunningStat internal_temp_stats, Bplus_volt_stats, Bplus_amp_stats;
 
 float internal_temp() {
 	return __LL_ADC_CALC_TEMPERATURE(3300, raw_recs.internal_temp >> 4,
@@ -26,13 +26,25 @@ float Bplus_amp() {
 //	return raw_recs.PA3_A2_ADC1_IN8_B_CUR;
 }
 
-void UpdateStats() {
-	RS_Push(&internal_temp_stats, internal_temp());
-	RS_Push(&Bplus_volt_stats, Bplus_volt());
-	RS_Push(&Bplus_amp_stats, Bplus_amp());
+// Temp in °C = [(Vout in mV) - 500] / 10
+// Vref = 3.3
+// 16 bits with oversampling
+// 3.3/65535 volts/n
+// Scale Factor, TMP36 −40°C ≤ TA ≤ +125°C 10 mV/°C
+// TMP36 Output Voltage TA = 25°C 750 mV
+float ADC11_temp() {
+	float Vout = raw_recs.PA6_A5_ADC1_IN11 * 3.3f/65535;
+	return (Vout * 1000 - 500) / 10;
 }
-void ResetStats() {
-	RS_Clear(&internal_temp_stats);
-	RS_Clear(&Bplus_volt_stats);
-	RS_Clear(&Bplus_amp_stats);
+float ADC12_temp() {
+	float Vout = raw_recs.PA7_A6_ADC1_IN12 * 3.3f/65535;
+	return (Vout * 1000 - 500) / 10;
+}
+float ADC15_temp() {
+	float Vout = raw_recs.PB0_D3_ADC1_IN15 * 3.3f/65535;
+	return (Vout * 1000 - 500) / 10;
+}
+float ADC16_temp() {
+	float Vout = raw_recs.PB1_D6_ADC1_IN16 * 3.3f/65535;
+	return (Vout * 1000 - 500) / 10;
 }

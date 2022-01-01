@@ -8,7 +8,7 @@
 #ifndef INC_ANALOG_H_
 #define INC_ANALOG_H_
 
-#include "running_stat.h"
+#include <stdint.h>
 
 typedef struct {
 	uint16_t internal_temp;
@@ -23,13 +23,13 @@ typedef struct {
 #define ADC_RAW_REC_LEN (sizeof(adc_raw_rec_t) / sizeof(uint16_t))
 
 extern adc_raw_rec_t raw_recs;
-extern RunningStat internal_temp_stats, Bplus_volt_stats, Bplus_amp_stats;
 
 float internal_temp();
 float Bplus_volt();
 float Bplus_amp();
-
-void UpdateStats();
-void ResetStats();
+float ADC11_temp();
+float ADC12_temp();
+float ADC15_temp();
+float ADC16_temp();
 
 #endif /* INC_ANALOG_H_ */

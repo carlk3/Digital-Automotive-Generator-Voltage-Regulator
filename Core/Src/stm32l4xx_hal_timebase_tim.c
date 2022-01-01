@@ -50,6 +50,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 
   /* Enable the TIM16 global Interrupt */
   HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
+
   /* Enable TIM16 clock */
   __HAL_RCC_TIM16_CLK_ENABLE();
 
@@ -74,6 +75,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   htim16.Init.Prescaler = uwPrescalerValue;
   htim16.Init.ClockDivision = 0;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+
   if(HAL_TIM_Base_Init(&htim16) == HAL_OK)
   {
     /* Start the TIM time Base generation in interrupt mode */
@@ -108,4 +110,3 @@ void HAL_ResumeTick(void)
   __HAL_TIM_ENABLE_IT(&htim16, TIM_IT_UPDATE);
 }
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

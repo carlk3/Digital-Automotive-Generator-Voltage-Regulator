@@ -58,8 +58,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "global.h"
 #include "analog.h"
+#include "data.h"
 //
 #include "printf.h"
 
@@ -132,6 +132,8 @@ int main(void)
   MX_RTC_Init();
   MX_COMP1_Init();
   MX_TIM1_Init();
+  MX_TIM2_Init();
+  MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
 	setbuf(stdout, NULL); // unbuffered stdout
@@ -187,18 +189,17 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-  /** Configure LSE Drive Capability
-  */
-  HAL_PWR_EnableBkUpAccess();
-  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
   /** Configure the main internal regulator output voltage
   */
   if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
+  /** Configure LSE Drive Capability
+  */
+  HAL_PWR_EnableBkUpAccess();
+  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
@@ -229,36 +230,75 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_USART2
-                              |RCC_PERIPHCLK_ADC;
-  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
-  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
 }
 
 /* USER CODE BEGIN 4 */
 
-/**
- * @brief  Comparator trigger callback.
- * @param  hcomp  COMP handle
- * @retval None
- */
-void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
-	/* Prevent unused argument(s) compilation warning */
-	UNUSED(hcomp);
+__attribute__((used))
+void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
+{
+/* These are volatile to try and prevent the compiler/linker optimising them
+away as the variables never actually get used.  If the debugger won't show the
+values of the variables, make them global my moving their declaration outside
+of this function. */
+volatile uint32_t __attribute__((unused)) r0;
+volatile uint32_t __attribute__((unused)) r1;
+volatile uint32_t __attribute__((unused)) r2;
+volatile uint32_t __attribute__((unused)) r3;
+volatile uint32_t __attribute__((unused)) r12;
+volatile uint32_t __attribute__((unused)) lr; /* Link register. */
+volatile uint32_t __attribute__((unused)) pc; /* Program counter. */
+volatile uint32_t __attribute__((unused)) psr;/* Program status register. */
 
-	/*  Check if COMP1 output level is high */
-	if ((HAL_COMP_GetOutputLevel(&hcomp1)) == COMP_OUTPUT_LEVEL_HIGH) {
-		/* A rising edge is detected so the input voltage is higher than VREFINT */
-		printf("Comparator triggered: input voltage is higher than VREFINT\r\n");
-	} else {
-		printf("Comparator triggered: input voltage is lower than VREFINT\r\n");
-	}
+    r0 = pulFaultStackAddress[ 0 ];
+    r1 = pulFaultStackAddress[ 1 ];
+    r2 = pulFaultStackAddress[ 2 ];
+    r3 = pulFaultStackAddress[ 3 ];
 
+    r12 = pulFaultStackAddress[ 4 ];
+    lr = pulFaultStackAddress[ 5 ];
+    pc = pulFaultStackAddress[ 6 ];
+    psr = pulFaultStackAddress[ 7 ];
+
+    /* When the following line is hit, the variables contain the register values. */
+    for( ;; ) __BKPT(4);
 }
+/**
+  * @brief This function handles Hard fault interrupt.
+  * See https://www.freertos.org/Debugging-Hard-Faults-On-Cortex-M-Microcontrollers.html
+  */
+__attribute__((naked))
+void HardFault_Handler(void) {
+#if 0
+    __asm volatile
+    (
+        " tst lr, #4                                                \n"
+        " ite eq                                                    \n"
+        " mrseq r0, msp                                             \n"
+        " mrsne r0, psp                                             \n"
+        " ldr r1, [r0, #24]                                         \n"
+        " ldr r2, handler2_address_const                            \n"
+        " bx r2                                                     \n"
+        " handler2_address_const: .word prvGetRegistersFromStack    \n"
+    );
+#else
+	__asm volatile (
+			" movs r0,#4       \n"
+			" movs r1, lr      \n"
+			" tst r0, r1       \n"
+			" beq _MSP2         \n"
+			" mrs r0, psp      \n"
+			" b _HALT2          \n"
+			"_MSP2:               \n"
+			" mrs r0, msp      \n"
+			"_HALT2:              \n"
+			" ldr r1,[r0,#20]  \n"
+			" b prvGetRegistersFromStack \n"
+	);
+#endif
+}
+
+
 
 void my_assert_func(const char *file, int line, const char *func,
                     const char *pred) {
@@ -273,7 +313,7 @@ void my_assert_func(const char *file, int line, const char *func,
 
 /* USER CODE END 4 */
 
- /**
+/**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM16 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
@@ -329,4 +369,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
