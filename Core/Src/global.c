@@ -1,19 +1,19 @@
 #include "global.h"
 
-float Vlim = 7.5;
-float Ilim = 45;
-float Plim = 180;
+//float Vlim = 7.5;
+//float Ilim = 45;
+//float Plim = 180;
 
 const uint32_t regulator_period =  10; // ms
 const uint32_t period1Hz =  1000; // ms
 
-float Bplus_volt_scale = 6.87f / 34060; // voltmeter / raw adc sample
-
-//uint16_t Bplus_zero = 49880;
-uint16_t Bplus_zero = 9961;
-
-// 5.0 amp: 13845
-float Bplus_amp_scale = 5.0f/(13845-9961);
+//float Bplus_volt_scale = 6.87f / 34060; // voltmeter / raw adc sample
+//
+////uint16_t Bplus_zero = 49880;
+//uint16_t Bplus_zero = 9961;
+//
+//// 5.0 amp: 13845
+//float Bplus_amp_scale = 5.0f/(13845-9961);
 
 // 1.0a 50130
 //     -49866

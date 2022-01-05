@@ -11,9 +11,11 @@
 #include "main.h"
 #include "stm32l4xx_hal_pwr_ex.h" // HAL_PWREx_EnterSTOP2Mode
 //
+#include "analog.h"
 #include "comp.h"
 #include "data.h"
 #include "digital.h"
+#include "config.h"
 #include "global.h"
 //
 #include "regulator_sm.h"
@@ -118,21 +120,29 @@ static void reg_run_st(evt_t const *const pEvt) {
 	case PERIOD_SIG: {
 		data_rec_t data;
 		get_data(&data);
+		float clim = cfg_get_clim();
+		float vlim = cfg_get_vlim();
 
-		if (data.Bamps > 1.1 * Ilim && data.Bvolts < 0.1 * Vlim) {
+		if (get_Bplus_amps() > 1.1 * clim && get_Bplus_volts() < 0.1 * vlim) {
 			// Short?
+			printf("Probable short!\r\n");
 			reg_tran(reg_failed_st);
 		}
-		if (data.Bvolts > 1.1 * Vlim && data.Bamps < 0.1 * Ilim) {
+		if (get_Bplus_volts() > 1.1 * vlim && get_Bplus_amps() < 0.1 * clim) {
 			// Open?
+			printf("Probable open!\r\n");
+			reg_tran(reg_failed_st);
+		}
+		if (data.internal_temp > 125.0) {
+			printf("Over temp!");
 			reg_tran(reg_failed_st);
 		}
 		bool next_enable = true;
-		if (data.Bvolts * data.Bamps > Plim)
+		if (data.Bvolts * data.Bamps > cfg_get_plim())
 			next_enable = false;
-		if (data.Bamps > Ilim)
+		if (data.Bamps > clim)
 			next_enable = false;
-		if (data.Bvolts > Vlim)
+		if (data.Bvolts > vlim)
 			next_enable = false;
 		enable_field(next_enable);
 
@@ -140,12 +150,14 @@ static void reg_run_st(evt_t const *const pEvt) {
 			++field_on_count;
 		else
 			++field_off_count;
+		enable_field(next_enable);
 		update_avgs(&data);
 		update_stats(&data);
 		break;
 	}
 	case REG_EXIT_SIG:
 		printf("Regulator stopped\r\n");
+		enable_field(false);
 		break;
 	default:;
 	}

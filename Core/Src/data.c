@@ -21,17 +21,19 @@ unsigned field_on_count, field_off_count;
 void get_data(data_rec_t *p) {
 	// * sec/min * rev/fire
 	p->rpm = frequency() * 60 / 2;
-	p->Bvolts = Bplus_volt();
-	p->Bamps = Bplus_amp();
+	p->Bvolts_raw = get_Bplus_volts_raw();
+	p->Bvolts = get_Bplus_volts();
+	p->Bamps_raw = get_Bplus_amps_raw();
+	p->Bamps = get_Bplus_amps();
 	if (field_on_count + field_off_count)
 		p->duty_cycle = field_on_count / (field_on_count + field_off_count);
 	else
 		p->duty_cycle = 0;
-	p->internal_temp = internal_temp();
-	p->ADC11_degC = ADC11_temp();
-	p->ADC12_degC = ADC12_temp();
-	p->ADC15_degC = ADC15_temp();
-	p->ADC16_degC = ADC16_temp();
+	p->internal_temp = get_internal_temp();
+	p->ADC11_degC = get_ADC11_temp();
+	p->ADC12_degC = get_ADC12_temp();
+	p->ADC15_degC = get_ADC15_temp();
+	p->ADC16_degC = get_ADC16_temp();
 }
 
 static data_rec_t avg1sec;
@@ -50,7 +52,9 @@ void update_avgs(data_rec_t *p) {
 		if (N < configTICK_RATE_HZ / regulator_period)
 			++N;
 		avg1sec.rpm += (p->rpm - avg1sec.rpm) / N;
+		avg1sec.Bvolts_raw += (p->Bvolts_raw - avg1sec.Bvolts_raw) / N;
 		avg1sec.Bvolts += (p->Bvolts - avg1sec.Bvolts) / N;
+		avg1sec.Bamps_raw += (p->Bamps_raw - avg1sec.Bamps_raw) / N;
 		avg1sec.Bamps += (p->Bamps - avg1sec.Bamps) / N;
 		avg1sec.duty_cycle += (p->duty_cycle - avg1sec.duty_cycle) / N;
 		avg1sec.internal_temp += (p->internal_temp - avg1sec.internal_temp) / N;

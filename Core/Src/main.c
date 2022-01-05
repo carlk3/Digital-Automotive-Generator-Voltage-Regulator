@@ -59,6 +59,7 @@
 #include <stdio.h>
 
 #include "analog.h"
+#include "config.h"
 #include "data.h"
 //
 #include "printf.h"
@@ -136,15 +137,6 @@ int main(void)
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
-	setbuf(stdout, NULL); // unbuffered stdout
-	setvbuf (stdout, 0, _IONBF, 0);
-	printf("\e[2J\e[H"  // Clear Screen
-					"Voltage Regulator Console\r\n\n");
-
-	RS_init(&internal_temp_stats);
-	RS_init(&Bplus_volt_stats);
-	RS_init(&Bplus_amp_stats);
-
 	/* Start analog data conversion */
 	if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
 		Error_Handler();
@@ -160,6 +152,17 @@ int main(void)
 	// Start the TIMER TIM1 in the Input capture interrupt mode.
 	// This is the timer for measuring frequency on PA8 (D9)
 	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
+
+	cfg_load();
+
+	RS_init(&internal_temp_stats);
+	RS_init(&Bplus_volt_stats);
+	RS_init(&Bplus_amp_stats);
+
+	setbuf(stdout, NULL); // unbuffered stdout
+	setvbuf (stdout, 0, _IONBF, 0);
+	printf("\e[2J\e[H"  // Clear Screen
+					"Voltage Regulator Console\r\n\n");
 
   /* USER CODE END 2 */
 

@@ -8,7 +8,6 @@
 #ifndef INC_DATA_H_
 #define INC_DATA_H_
 
-#include "data.h"
 #include "running_stat.h"
 
 extern unsigned long long uptime; // Seconds since reset
@@ -16,7 +15,9 @@ extern unsigned field_on_count, field_off_count; // for duty cycle
 
 typedef struct {
 	float rpm;
+	float Bvolts_raw;
 	float Bvolts;
+	float Bamps_raw;
 	float Bamps;
 	float duty_cycle;
 	float internal_temp;

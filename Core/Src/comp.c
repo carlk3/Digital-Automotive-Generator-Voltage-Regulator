@@ -113,9 +113,9 @@ void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
 	/*  Check if COMP1 output level is high */
 	if ((HAL_COMP_GetOutputLevel(&hcomp1)) == COMP_OUTPUT_LEVEL_HIGH) {
 		/* A rising edge is detected so the input voltage is higher than VREFINT */
-		printf("Comparator triggered: input voltage is higher than VREFINT\r\n");
+//		printf("Comparator triggered: input voltage is higher than VREFINT\r\n");
 	} else {
-		printf("Comparator triggered: input voltage is lower than VREFINT\r\n");
+//		printf("Comparator triggered: input voltage is lower than VREFINT\r\n");
 	}
 }
 

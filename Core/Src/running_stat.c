@@ -20,13 +20,13 @@
 void RS_init(RunningStat *const pRS) {
 	pRS->m_n = 0;
 	pRS->m_min = FLT_MAX;
-	pRS->m_max = FLT_MIN;
+	pRS->m_max = -FLT_MAX;
 }
 
 void RS_Clear(RunningStat *const pRS) {
 	pRS->m_n = 0;
 	pRS->m_min = FLT_MAX;
-	pRS->m_max = FLT_MIN;
+	pRS->m_max = -FLT_MAX;
 }
 
 void RS_Push(RunningStat *const pRS, const float x) {

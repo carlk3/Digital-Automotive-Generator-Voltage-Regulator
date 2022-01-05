@@ -24,12 +24,14 @@ typedef struct {
 
 extern adc_raw_rec_t raw_recs;
 
-float internal_temp();
-float Bplus_volt();
-float Bplus_amp();
-float ADC11_temp();
-float ADC12_temp();
-float ADC15_temp();
-float ADC16_temp();
+float get_internal_temp();
+float get_Bplus_volts();
+uint16_t get_Bplus_volts_raw();
+float get_Bplus_amps();
+uint16_t get_Bplus_amps_raw();
+float get_ADC11_temp();
+float get_ADC12_temp();
+float get_ADC15_temp();
+float get_ADC16_temp();
 
 #endif /* INC_ANALOG_H_ */

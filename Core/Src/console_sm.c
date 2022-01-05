@@ -8,6 +8,9 @@
 
 #include "main.h"
 #include "freertos.h"
+//
+#include "analog.h"
+#include "config.h"
 #include "data.h"
 #include "digital.h"
 #include "fs.h"
@@ -37,32 +40,42 @@ static void cnsl_tran(cnsl_state_t target) {
 	cnsl_dispatch(&cnsl_entry_evt); /* enter the target */
 }
 
-static void cnsl_show_volt_st(evt_t const *const pEvt);
-static void cnsl_show_curr_st(evt_t const *const pEvt);
-static void cnsl_show_tach_st(evt_t const *const pEvt);
-static void cnsl_show_adc11_st(evt_t const *const pEvt);
-static void cnsl_run_littlefs_st(evt_t const *const pEvt);
+static void cnsl_show_st(evt_t const *const pEvt);
+static void cnsl_stat_st(evt_t const *const pEvt);
+static void cnsl_cfg_st(evt_t const *const pEvt);
+static void cnsl_cfg_v_st(evt_t const *const pEvt);
+static void cnsl_cfg_c_st(evt_t const *const pEvt);
+static void cnsl_cfg_p_st(evt_t const *const pEvt);
+static void cnsl_cal_st(evt_t const *const pEvt);
+static void cnsl_cal_v_st(evt_t const *const pEvt);
+static void cnsl_cal_c_st(evt_t const *const pEvt);
 
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Voltage Regulator\r\n"
-				"1 or n: Show statistics\r\n"
-				"r: Reset statistics\r\n"
+		printf("Top Menu\r\n"
+				"S: Show Continuous Readings\r\n"
+				"T: Show Statistics\r\n"
+				"O: Configuration\r\n"
+				"C: Callibration\r\n"
+				"L: Command Line\r\n"
+				"Enter a letter: ");
+
+//				"r: Reset statistics\r\n"
 //				"2: Calibrate\r\n"
 //				"3: Configure\r\n"
-				"4 or v: Show B+ voltage\r\n"
-				"5 or c: Show B+ current\r\n"
-				"t: show RPM\r\n"
-				"e: Show ADC11 as temperature\r\n"
-				"s: start regulator\r\n"
-				"q: stop regulator\r\n"
-				"f: enable field\r\n"
-				"g: disable field\r\n"
-				"l: sleep\r\n"
-				"d: test SD card\r\n"
-				"i: littlefs test\r\n"
-				"[Type choice]: ");
+//				"4 or v: Show B+ voltage\r\n"
+//				"5 or c: Show B+ current\r\n"
+//				"t: show RPM\r\n"
+//				"e: Show ADC11 as temperature\r\n"
+//				"s: start regulator\r\n"
+//				"q: stop regulator\r\n"
+//				"f: enable field\r\n"
+//				"g: disable field\r\n"
+//				"l: sleep\r\n"
+//				"d: test SD card\r\n"
+//				"i: littlefs test\r\n"
+//				"[Type choice]: ");
 		fflush(stdout);
 //		memset(cnsl.buf, 0, sizeof cnsl.buf);
 //		cnsl.buf_end = 0;
@@ -72,71 +85,24 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 		putchar(c);  // echo
 		fflush(stdout);
 		switch (tolower(c)) {
-		case '1':
-		case 'n': {
-			data_rec_t data;
-			get_data(&data);
-			printf("\r\nUptime: %lu seconds\r\n", uptime);
-			printf("Internal Temperature:\r\n\t"
-					"Now: %4.2g\r\n\t"
-//					"Samples: %10u\r\n\t"
-					"Mean: %4.3g\r\n\t"
-//					"StdDev: %#7.3g\r\n\t"
-					"Min: %6.4g\r\n\t"
-					"Max: %6.4g\r\n", data.internal_temp,
-//					RS_NumDataValues(&internal_temp_stats),
-					RS_Mean(&internal_temp_stats),
-//					RS_StandardDeviation(&internal_temp_stats),
-					RS_Min(&internal_temp_stats), RS_Max(&internal_temp_stats));
-//				printf("A1: Raw: %hu, Num: %10u, "
-//						"Mean: %4.5g, StdDev: %#7.3g, Min: %4.3g, Max: %4.3g\r\n",
-//						raw_recs[ix].A1, RS_NumDataValues(&A1_stats),
-//						RS_Mean(&A1_stats), RS_StandardDeviation(&A1_stats),
-//						RS_Min(&A1_stats), RS_Max(&A1_stats));
-			printf("B+ Voltage: %4.3g\r\n\t"
-//					"Samples: %10u\r\n\t"
-							"Mean: %4.4g\r\n\t"
-//					"StdDev: %#7.3g\r\n\t"
-							"Min: %4.3g\r\n\t"
-							"Max: %4.3g\r\n",
-			// line up: "\e[1A\e[1A"
-					data.Bvolts,
-//					RS_NumDataValues(&Bplus_volt_stats),
-					RS_Mean(&Bplus_volt_stats),
-//					RS_StandardDeviation(&Bplus_volt_stats),
-					RS_Min(&Bplus_volt_stats), RS_Max(&Bplus_volt_stats));
-			printf(
-					"B+ Current:\r\n\t"
-							"Now: %6.3g\r\n\t"
-							"Samples: %10u\r\n\t"
-							"Mean: %6.4g\r\n\t"
-//					"StdDev: %#7.3g\r\n\t"
-							"Min: %6.3g\r\n\t"
-							"Max: %6.3g\r\n", data.Bamps,
-					RS_NumDataValues(&Bplus_amp_stats),
-					RS_Mean(&Bplus_amp_stats),
-//					RS_StandardDeviation(&Bplus_amp_stats),
-					RS_Min(&Bplus_amp_stats), RS_Max(&Bplus_amp_stats));
-			fflush(stdout);
-//			cnsl_dispatch(&cnsl_entry_evt);
-			break;
-		}
-		case 'r':
+		case 's':
 			printf("\r\n");
-			reset_stats();
-			printf("Statistics reset\r\n");
+			cnsl_tran(cnsl_show_st);
 			break;
-		case '4':
-		case 'v':
+		case 't':
 			printf("\r\n");
-			cnsl_tran(cnsl_show_volt_st);
+			cnsl_tran(cnsl_stat_st);
 			break;
-		case '5':
+		case 'o':
+			printf("\r\n");
+			cnsl_tran(cnsl_cfg_st);
+			break;
 		case 'c':
 			printf("\r\n");
-			cnsl_tran(cnsl_show_curr_st);
+			cnsl_tran(cnsl_cal_st);
 			break;
-		case 's': {
+
+		case '1': {
 			printf("\r\n");
 //			enable_33_pwr(true);
 			evt_t evt = { REG_START_SIG, { 0 } };
@@ -144,7 +110,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			assert(osOK == rc);
 			break;
 		}
-		case 'q': {
+		case '2': {
 			printf("\r\n");
 //			enable_33_pwr(false);
 			evt_t evt = { REG_STOP_SIG, { 0 } };
@@ -152,56 +118,46 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			assert(osOK == rc);
 			break;
 		}
-		case 'f':
+		case '3':
 			printf("\r\n");
 			enable_field(true);
 			printf("field enabled\r\n");
 			break;
-		case 'g':
+		case '4':
 			printf("\r\n");
 			enable_field(false);
 			printf("field disabled\r\n");
 			break;
-		case 'l': {
+		case '5': {
 			evt_t evt = { REG_SLEEP_SIG, { 0 } };
 			osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
 			assert(osOK == rc);
 			break;
 		}
-		case 'd': {
-			extern int lliot(size_t pnum);
-			lliot(0);
-			break;
-		}
-		case 't':
-			printf("\r\n");
-			cnsl_tran(cnsl_show_tach_st);
-			break;
-		case 'e':
-			printf("\r\n");
-			cnsl_tran(cnsl_show_adc11_st);
-			break;
-		case 'i':
-			printf("\r\n");
-			cnsl_tran(cnsl_run_littlefs_st);
-			break;
-
-//		case '2':
-//		case '3':
+//		case 'd': {
+//			extern int lliot(size_t pnum);
+//			lliot(0);
+//			break;
+//		}
+//		case 'i':
+//			printf("\r\n");
+//			cnsl_tran(cnsl_run_littlefs_st);
+//			break;
 		default:
 			cnsl_dispatch(&cnsl_entry_evt);
-		}
+		} //
 	}
 	default:
 		;
 	}
 }
-static void cnsl_show_volt_st(evt_t const *const pEvt) {
-//	float *pOldV = (float*) cnsl.buf;
+static void cnsl_show_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-//		*pOldV = 0.0;
-		printf("Volts: [Type any key to quit]\r\n");
+		printf("Show continuous readings\r\n"
+				"[Enter anything to quit]\r\n"
+				"RPM    Volts  Amps   Int °C A11 °C\r\n"
+				"------ ------ ------ ------ ------\r\n");
 		break;
 	case KEYSTROKE_SIG:
 		printf("\r\n");
@@ -210,136 +166,350 @@ static void cnsl_show_volt_st(evt_t const *const pEvt) {
 	case PERIOD_1HZ_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("%4.3g\r\n", data.Bvolts);
+		printf("%6.3g %6.3g %6.3g %6.3g %6.3g\r\n", data.rpm, data.Bvolts,
+				data.Bamps, data.internal_temp, data.ADC11_degC);
 		break;
 	}
 	default:
 		;
 	}
 }
-static void cnsl_show_curr_st(evt_t const *const pEvt) {
+static void cnsl_stat_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Current (A): [Type any key to quit]\r\n");
+		printf("\r\nUptime: %llu seconds\r\n", uptime);
+		printf("Internal Temperature:\r\n\t"
+				"Mean: %4.3g\r\n\t"
+//				 "StdDev: %#7.3g\r\n\t"
+				"Min: %6.4g\r\n\t"
+				"Max: %6.4g\r\n",
+				RS_Mean(&internal_temp_stats),
+//				 RS_StandardDeviation(&internal_temp_stats),
+				RS_Min(&internal_temp_stats),
+				RS_Max(&internal_temp_stats));
+		printf("B+ Voltage: \r\n\t"
+				"Mean: %4.4g\r\n\t"
+				"Min: %4.3g\r\n\t"
+				"Max: %4.3g\r\n",
+				RS_Mean(&Bplus_volt_stats),
+				RS_Min(&Bplus_volt_stats),
+				RS_Max(&Bplus_volt_stats));
+		printf("B+ Current:\r\n\t"
+				"Mean: %6.4g\r\n\t"
+				"Min: %6.3g\r\n\t"
+				"Max: %6.3g\r\n",
+				RS_Mean(&Bplus_amp_stats),
+				RS_Min(&Bplus_amp_stats),
+				RS_Max(&Bplus_amp_stats));
+		printf("\r\nEnter:\r\n"
+				"T: Show again\r\n"
+				"R: Reset statistics\r\n"
+				"[anything else]: Quit\r\n");
 		break;
 	case KEYSTROKE_SIG: {
 		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
 		switch (tolower(c)) {
-		case '\r':
-		case '\n':
+		case 't':
+			cnsl_dispatch(&cnsl_entry_evt);
+			break;
+		case 'r':
+			reset_stats();
+			cnsl_dispatch(&cnsl_entry_evt);
 			break;
 		default:
 			printf("\r\n");
 			cnsl_tran(cnsl_top_st);
-		}
-		break;
-	}
-	case PERIOD_1HZ_SIG: {
-		data_rec_t data;
-		get_data_1sec_avg(&data);
-		printf("%6.3g\r\n", data.Bamps);
-		break;
-	}
+			break;
+		} // switch (tolower(c))
+	} // case KEYSTROKE_SIG
 	default:
 		;
-	}
-}
+	} // switch (pEvt->sig)
+} // static void cnsl_stat_st
 
-static void cnsl_show_tach_st(evt_t const *const pEvt) {
+static void cnsl_cfg_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("RPM: [Type any key to quit]\r\n");
+		printf("Configuration\r\n"
+				"Settings:\r\n"
+		"  V: Voltage limit: %6.3g\r\n"
+		"  C: Current limit: %6.3g\r\n"
+		"  P: Power limit: %6.3g\r\n"
+		"  S: Save\r\n"
+		"Enter V, C, or P to change,\r\n"
+		"S to commit changes: ",
+		cfg_get_vlim(),
+		cfg_get_clim(),
+		cfg_get_plim());
 		break;
 	case KEYSTROKE_SIG: {
 		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
 		switch (tolower(c)) {
-		case '\r':
-		case '\n':
+		case 'v':
+			cnsl_tran(cnsl_cfg_v_st);
+			break;
+		case 'c':
+			cnsl_tran(cnsl_cfg_c_st);
+			break;
+		case 'p':
+			cnsl_tran(cnsl_cfg_p_st);
+			break;
+		case 's':
+			cfg_save();
+			printf("\r\nConfiguration saved\r\n");
 			break;
 		default:
 			printf("\r\n");
 			cnsl_tran(cnsl_top_st);
-		}
-		break;
-	}
-	case PERIOD_1HZ_SIG: {
-//		float f = frequency();
-//		if (fabs(*pOldF - f) >= FLT_EPSILON * fmaxf(fabs(*pOldF), fabs(f))) {
-//			// * sec/min * rev/fire
-//			float rpm = f * 60 / 2;
-//			printf("\t%6.1f        \t\r", rpm);
-//			fflush(stdout);
-//			*pOldF = f;
-//		}
-		data_rec_t data;
-		get_data_1sec_avg(&data);
-		printf("%6.1f\r\n", data.rpm);
-		break;
-	}
+			break;
+		} // switch (tolower(c))
+	} // case KEYSTROKE_SIG
 	default:
 		;
-	}
+	} // switch (pEvt->sig)
 }
-
-// TMP36 hooked to A5
-static void cnsl_show_adc11_st(evt_t const *const pEvt) {
-//	float *pOldC = (float*) cnsl.buf;
+static void cnsl_cfg_v_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-//		*pOldC = 0.0;
-		printf("Temperature °C: [Type any key to quit]\r\n");
+		printf("Configure Voltage Limit\r\n"
+				"[Enter new limit in volts,\r\n"
+				"or anything else to quit]\r\n");
+		printf("Existing: %6.3g\r\n", cfg_get_vlim());
+		printf("New: ");
+		memset(cnsl.buf, 0, sizeof cnsl.buf);
+		cnsl.buf_end = 0;
 		break;
 	case KEYSTROKE_SIG: {
 		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
+		if ('.' == c || isdigit(c)) {
+			if (cnsl.buf_end <= sizeof cnsl.buf)
+				cnsl.buf[cnsl.buf_end++] = c;
+		} else if (c == '\b' || c == (char)127) { // backspace
+			if (cnsl.buf_end > 0)
+				cnsl.buf[--cnsl.buf_end] = 0;
+		} else if ('\r' == c || 'n' == c) {
+			float f;
+			int rc = sscanf(cnsl.buf, "%f", &f);
+			if (1 == rc)
+				cfg_set_vlim(f);
+			cnsl_dispatch(&cnsl_entry_evt);
+		} else {
+			cnsl_tran(cnsl_cfg_st);
+		}
+		break;
+	} // case KEYSTROKE_SIG
+	default:
+		;
+	} // switch (pEvt->sig)
+}
+static void cnsl_cfg_c_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG:
+		printf("Configure Current Limit\r\n"
+				"[Enter new limit in amps,\r\n"
+				"or anything else to quit]\r\n");
+		printf("Existing: %6.3g\r\n", cfg_get_clim());
+		printf("New: ");
+		memset(cnsl.buf, 0, sizeof cnsl.buf);
+		cnsl.buf_end = 0;
+		break;
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
+		if ('.' == c || isdigit(c)) {
+			if (cnsl.buf_end <= sizeof cnsl.buf)
+				cnsl.buf[cnsl.buf_end++] = c;
+		} else if (c == '\b' || c == (char)127) { // backspace
+			if (cnsl.buf_end > 0)
+				cnsl.buf[--cnsl.buf_end] = 0;
+		} else if ('\r' == c || 'n' == c) {
+			float f;
+			int rc = sscanf(cnsl.buf, "%f", &f);
+			if (1 == rc)
+				cfg_set_clim(f);
+			cnsl_dispatch(&cnsl_entry_evt);
+		} else {
+			cnsl_tran(cnsl_cfg_st);
+		}
+		break;
+	} // case KEYSTROKE_SIG
+	default:
+		;
+	} // switch (pEvt->sig)
+}
+static void cnsl_cfg_p_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG:
+		printf("Configure Power Limit\r\n"
+				"[Enter new limit in watts,\r\n"
+				"or anything else to quit]\r\n");
+		printf("Existing: %6.3g\r\n", cfg_get_plim());
+		printf("New: ");
+		memset(cnsl.buf, 0, sizeof cnsl.buf);
+		cnsl.buf_end = 0;
+		break;
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
+		if ('.' == c || isdigit(c)) {
+			if (cnsl.buf_end <= sizeof cnsl.buf)
+				cnsl.buf[cnsl.buf_end++] = c;
+		} else if (c == '\b' || c == (char)127) { // backspace
+			if (cnsl.buf_end > 0)
+				cnsl.buf[--cnsl.buf_end] = 0;
+		} else if ('\r' == c || 'n' == c) {
+			float f;
+			int rc = sscanf(cnsl.buf, "%f", &f);
+			if (1 == rc)
+				cfg_set_plim(f);
+			cnsl_dispatch(&cnsl_entry_evt);
+		} else {
+			cnsl_tran(cnsl_cfg_st);
+		}
+		break;
+	} // case KEYSTROKE_SIG
+	default:
+		;
+	} // switch (pEvt->sig)
+}
+
+static void cnsl_cal_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG: {
+		data_rec_t data;
+		get_data_1sec_avg(&data);
+		printf("Calibration\r\n"
+		"  V: Voltage sense: %6.3g\r\n"
+		"  C: Current sense: %6.3g\r\n"
+		"Enter V or C to calibrate,\r\n"
+		"or anything else to quit: ",
+		data.Bvolts, data.Bamps);
+		break;
+	}
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
 		switch (tolower(c)) {
-		case '\r':
-		case '\n':
+		case 'v':
+			cnsl_tran(cnsl_cal_v_st);
+			break;
+		case 'c':
+			cnsl_tran(cnsl_cal_c_st);
 			break;
 		default:
 			printf("\r\n");
 			cnsl_tran(cnsl_top_st);
-		}
-		break;
-	}
-	case PERIOD_1HZ_SIG: {
-		// Temp in °C = [(Vout in mV) - 500] / 10
-		// Vref = 3.3
-		// 16 bits with oversampling
-		// 3.3/65535 volts/n
-		// Scale Factor, TMP36 −40°C ≤ TA ≤ +125°C 10 mV/°C
-		// TMP36 Output Voltage TA = 25°C 750 mV
-//		float Vout = raw_recs.PA6_A5_ADC1_IN11 * 3.3f/65535;
-//		float temp = (Vout * 1000 - 500) / 10;
-//		if (fabs(*pOldC - temp) >= FLT_EPSILON * fmaxf(fabs(*pOldC), fabs(temp))) {
-//			printf("\t%6.3g        \t\r", temp);
-//			fflush(stdout);
-//			*pOldC = temp;
-//		}
+			break;
+		} // switch (tolower(c))
+	} // case KEYSTROKE_SIG
+	default:
+		;
+	} // switch (pEvt->sig)
+}
+static void cnsl_cal_v_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("%6.3g\r\n", data.ADC11_degC);
+		printf("Calibrate Voltage Sense\r\n"
+				"[Enter true voltage, \r\n"
+				"or anything else to quit] \r\n");
+		printf("Sensed: %6.3g\r\n", data.Bvolts);
+		printf("New: ");
+		memset(cnsl.buf, 0, sizeof cnsl.buf);
+		cnsl.buf_end = 0;
 		break;
 	}
-	default:
-		;
-	}
-}
-
-static void cnsl_run_littlefs_st(evt_t const *const pEvt) {
-	switch (pEvt->sig) {
-	case CNSL_ENTRY_SIG:
-		fs_test();
-		break;
 	case KEYSTROKE_SIG: {
-			cnsl_tran(cnsl_top_st);
+		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
+		if ('.' == c || isdigit(c)) {
+			if (cnsl.buf_end <= sizeof cnsl.buf)
+				cnsl.buf[cnsl.buf_end++] = c;
+		} else if (c == '\b' || c == (char)127) { // backspace
+			if (cnsl.buf_end > 0)
+				cnsl.buf[--cnsl.buf_end] = 0;
+		} else if ('\r' == c || 'n' == c) {
+			float truth;
+			int rc = sscanf(cnsl.buf, "%f", &truth);
+			if (1 == rc) {
+				data_rec_t data;
+				get_data_1sec_avg(&data);
+				cfg_set_Bplus_volt_scale(truth / data.Bvolts_raw);
+				cfg_save();
+			}
+			cnsl_dispatch(&cnsl_entry_evt);
+		} else {
+			cnsl_tran(cnsl_cfg_st);
+		}
 		break;
-	}
+	} // case KEYSTROKE_SIG
 	default:
 		;
-	}
+	} // switch (pEvt->sig)
 }
+static void cnsl_cal_c_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG: {
+		data_rec_t data;
+		get_data_1sec_avg(&data);
+		printf("Calibrate Voltage Sense\r\n"
+				"[Enter true voltage, \r\n"
+				"or anything else to quit] \r\n");
+		printf("Sensed: %6.3g\r\n", data.Bvolts);
+		printf("New: ");
+		memset(cnsl.buf, 0, sizeof cnsl.buf);
+		cnsl.buf_end = 0;
+		break;
+	}
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		putchar(c);  // echo
+		fflush(stdout);
+		if ('.' == c || isdigit(c)) {
+			if (cnsl.buf_end <= sizeof cnsl.buf)
+				cnsl.buf[cnsl.buf_end++] = c;
+		} else if (c == '\b' || c == (char)127) { // backspace
+			if (cnsl.buf_end > 0)
+				cnsl.buf[--cnsl.buf_end] = 0;
+		} else if ('\r' == c || 'n' == c) {
+			float truth;
+			int rc = sscanf(cnsl.buf, "%f", &truth);
+			if (1 == rc) {
+				data_rec_t data;
+				get_data_1sec_avg(&data);
 
+				evt_t evt = {REG_STOP_SIG, { 0 } };
+				osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+				assert(osOK == rc);
 
-//// calculate the mean iteratively
-//++stats->num_30min;
-//stats->avg_30min += (chn_val - stats->avg_30min) / stats->num_30min;
+				uint16_t raw_zero = get_Bplus_amps_raw();
+
+				evt.sig = REG_START_SIG;
+				rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+				assert(osOK == rc);
+
+				cfg_set_Bplus_amp_scale(truth / (data.Bamps_raw - raw_zero));
+				cfg_set_Bplus_amp_zero(raw_zero);
+				cfg_save();
+			}
+			cnsl_dispatch(&cnsl_entry_evt);
+		} else {
+			cnsl_tran(cnsl_cfg_st);
+		}
+		break;
+	} // case KEYSTROKE_SIG
+	default:
+		;
+	} // switch (pEvt->sig)
+}
