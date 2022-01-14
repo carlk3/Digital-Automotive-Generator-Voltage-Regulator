@@ -10,6 +10,7 @@
 #include "freertos.h"
 //
 #include "analog.h"
+#include "command.h"
 #include "config.h"
 #include "data.h"
 #include "digital.h"
@@ -49,6 +50,7 @@ static void cnsl_cfg_p_st(evt_t const *const pEvt);
 static void cnsl_cal_st(evt_t const *const pEvt);
 static void cnsl_cal_v_st(evt_t const *const pEvt);
 static void cnsl_cal_c_st(evt_t const *const pEvt);
+static void cnsl_cmd_st(evt_t const *const pEvt);
 
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
@@ -60,25 +62,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 				"C: Callibration\r\n"
 				"L: Command Line\r\n"
 				"Enter a letter: ");
-
-//				"r: Reset statistics\r\n"
-//				"2: Calibrate\r\n"
-//				"3: Configure\r\n"
-//				"4 or v: Show B+ voltage\r\n"
-//				"5 or c: Show B+ current\r\n"
-//				"t: show RPM\r\n"
-//				"e: Show ADC11 as temperature\r\n"
-//				"s: start regulator\r\n"
-//				"q: stop regulator\r\n"
-//				"f: enable field\r\n"
-//				"g: disable field\r\n"
-//				"l: sleep\r\n"
-//				"d: test SD card\r\n"
-//				"i: littlefs test\r\n"
-//				"[Type choice]: ");
 		fflush(stdout);
-//		memset(cnsl.buf, 0, sizeof cnsl.buf);
-//		cnsl.buf_end = 0;
 		break;
 	case KEYSTROKE_SIG: {
 		char c = pEvt->content.data;
@@ -100,6 +84,10 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 		case 'c':
 			printf("\r\n");
 			cnsl_tran(cnsl_cal_st);
+			break;
+		case 'l':
+			printf("\r\n");
+			cnsl_tran(cnsl_cmd_st);
 			break;
 
 		case '1': {
@@ -134,16 +122,12 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			assert(osOK == rc);
 			break;
 		}
-//		case 'd': {
-//			extern int lliot(size_t pnum);
-//			lliot(0);
-//			break;
-//		}
 //		case 'i':
 //			printf("\r\n");
 //			cnsl_tran(cnsl_run_littlefs_st);
 //			break;
 		default:
+			printf("\r\n");
 			cnsl_dispatch(&cnsl_entry_evt);
 		} //
 	}
@@ -288,12 +272,12 @@ static void cnsl_cfg_v_st(evt_t const *const pEvt) {
 		putchar(c);  // echo
 		fflush(stdout);
 		if ('.' == c || isdigit(c)) {
-			if (cnsl.buf_end <= sizeof cnsl.buf)
+			if (cnsl.buf_end < sizeof cnsl.buf)
 				cnsl.buf[cnsl.buf_end++] = c;
 		} else if (c == '\b' || c == (char)127) { // backspace
 			if (cnsl.buf_end > 0)
 				cnsl.buf[--cnsl.buf_end] = 0;
-		} else if ('\r' == c || 'n' == c) {
+		} else if ('\r' == c || '\n' == c) {
 			float f;
 			int rc = sscanf(cnsl.buf, "%f", &f);
 			if (1 == rc)
@@ -324,12 +308,12 @@ static void cnsl_cfg_c_st(evt_t const *const pEvt) {
 		putchar(c);  // echo
 		fflush(stdout);
 		if ('.' == c || isdigit(c)) {
-			if (cnsl.buf_end <= sizeof cnsl.buf)
+			if (cnsl.buf_end < sizeof cnsl.buf)
 				cnsl.buf[cnsl.buf_end++] = c;
 		} else if (c == '\b' || c == (char)127) { // backspace
 			if (cnsl.buf_end > 0)
 				cnsl.buf[--cnsl.buf_end] = 0;
-		} else if ('\r' == c || 'n' == c) {
+		} else if ('\r' == c || '\n' == c) {
 			float f;
 			int rc = sscanf(cnsl.buf, "%f", &f);
 			if (1 == rc)
@@ -360,12 +344,12 @@ static void cnsl_cfg_p_st(evt_t const *const pEvt) {
 		putchar(c);  // echo
 		fflush(stdout);
 		if ('.' == c || isdigit(c)) {
-			if (cnsl.buf_end <= sizeof cnsl.buf)
+			if (cnsl.buf_end < sizeof cnsl.buf)
 				cnsl.buf[cnsl.buf_end++] = c;
 		} else if (c == '\b' || c == (char)127) { // backspace
 			if (cnsl.buf_end > 0)
 				cnsl.buf[--cnsl.buf_end] = 0;
-		} else if ('\r' == c || 'n' == c) {
+		} else if ('\r' == c || '\n' == c) {
 			float f;
 			int rc = sscanf(cnsl.buf, "%f", &f);
 			if (1 == rc)
@@ -434,12 +418,12 @@ static void cnsl_cal_v_st(evt_t const *const pEvt) {
 		putchar(c);  // echo
 		fflush(stdout);
 		if ('.' == c || isdigit(c)) {
-			if (cnsl.buf_end <= sizeof cnsl.buf)
+			if (cnsl.buf_end < sizeof cnsl.buf)
 				cnsl.buf[cnsl.buf_end++] = c;
 		} else if (c == '\b' || c == (char)127) { // backspace
 			if (cnsl.buf_end > 0)
 				cnsl.buf[--cnsl.buf_end] = 0;
-		} else if ('\r' == c || 'n' == c) {
+		} else if ('\r' == c || '\n' == c) {
 			float truth;
 			int rc = sscanf(cnsl.buf, "%f", &truth);
 			if (1 == rc) {
@@ -477,12 +461,12 @@ static void cnsl_cal_c_st(evt_t const *const pEvt) {
 		putchar(c);  // echo
 		fflush(stdout);
 		if ('.' == c || isdigit(c)) {
-			if (cnsl.buf_end <= sizeof cnsl.buf)
+			if (cnsl.buf_end < sizeof cnsl.buf)
 				cnsl.buf[cnsl.buf_end++] = c;
 		} else if (c == '\b' || c == (char)127) { // backspace
 			if (cnsl.buf_end > 0)
 				cnsl.buf[--cnsl.buf_end] = 0;
-		} else if ('\r' == c || 'n' == c) {
+		} else if ('\r' == c || '\n' == c) {
 			float truth;
 			int rc = sscanf(cnsl.buf, "%f", &truth);
 			if (1 == rc) {
@@ -506,6 +490,46 @@ static void cnsl_cal_c_st(evt_t const *const pEvt) {
 			cnsl_dispatch(&cnsl_entry_evt);
 		} else {
 			cnsl_tran(cnsl_cfg_st);
+		}
+		break;
+	} // case KEYSTROKE_SIG
+	default:
+		;
+	} // switch (pEvt->sig)
+}
+
+static void cnsl_cmd_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case CNSL_ENTRY_SIG: {
+		printf("Command Line\r\n"
+				"[Enter \"exit\" to quit] \r\n"
+				"> ");
+		fflush(stdout);
+		memset(cnsl.buf, 0, sizeof cnsl.buf);
+		cnsl.buf_end = 0;
+		break;
+	}
+	case KEYSTROKE_SIG: {
+		char c = pEvt->content.data;
+		printf("%c", c);  // echo
+		fflush(stdout);
+		if (c == '\b' || c == (char)127) { // backspace
+			if (cnsl.buf_end > 0)
+				cnsl.buf[--cnsl.buf_end] = 0;
+		} else if ('\r' == c || '\n' == c) { // enter
+			if (0 == strcmp("exit", cnsl.buf)) {
+				cnsl_tran(cnsl_top_st);
+			} else {
+				printf("\r\n");
+				process_command(cnsl.buf);
+				memset(cnsl.buf, 0, sizeof cnsl.buf);
+				cnsl.buf_end = 0;
+				printf("> ");
+				fflush(stdout);
+			}
+		} else {
+			if (cnsl.buf_end < sizeof cnsl.buf)
+				cnsl.buf[cnsl.buf_end++] = c;
 		}
 		break;
 	} // case KEYSTROKE_SIG

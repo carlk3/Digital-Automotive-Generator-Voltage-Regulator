@@ -5,12 +5,61 @@
 #include "printf.h"
 
 // variables used by the filesystem
-lfs_t lfs;
-lfs_file_t file;
+static lfs_t lfs;
+static lfs_file_t file;
+
+void print_fs_err(int err) {
+	switch (err) {
+	case LFS_ERR_OK:
+		printf(" No error \r\n");
+		break;
+	case LFS_ERR_IO:
+		printf(" Error during device operation \r\n");
+		break;
+	case LFS_ERR_CORRUPT:
+		printf(" Corrupted \r\n");
+		break;
+	case LFS_ERR_NOENT:
+		printf(" No directory entry \r\n");
+		break;
+	case LFS_ERR_EXIST:
+		printf(" Entry already exists \r\n");
+		break;
+	case LFS_ERR_NOTDIR:
+		printf(" Entry is not a dir \r\n");
+		break;
+	case LFS_ERR_ISDIR:
+		printf(" Entry is a dir \r\n");
+		break;
+	case LFS_ERR_NOTEMPTY:
+		printf(" Dir is not empty \r\n");
+		break;
+	case LFS_ERR_BADF:
+		printf(" Bad file number \r\n");
+		break;
+	case LFS_ERR_FBIG:
+		printf(" File too large \r\n");
+		break;
+	case LFS_ERR_INVAL:
+		printf(" Invalid parameter \r\n");
+		break;
+	case LFS_ERR_NOSPC:
+		printf(" No space left on device \r\n");
+		break;
+	case LFS_ERR_NOMEM:
+		printf(" No more memory available \r\n");
+		break;
+	case LFS_ERR_NOATTR:
+		printf(" No data/attr available \r\n");
+		break;
+	case LFS_ERR_NAMETOOLONG:
+		printf(" File name too long \r\n");
+	}
+}
 
 // Read a region in a block. Negative error codes are propogated
 // to the user.
-static int user_provided_block_device_read(const struct lfs_config *c,
+int user_provided_block_device_read(const struct lfs_config *c,
 		lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size) {
 	configASSERT(0 == off);
 	configASSERT(0 == size % 512);
@@ -19,7 +68,7 @@ static int user_provided_block_device_read(const struct lfs_config *c,
 // Program a region in a block. The block must have previously
 // been erased. Negative error codes are propogated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
-static int user_provided_block_device_prog(const struct lfs_config *c,
+int user_provided_block_device_prog(const struct lfs_config *c,
 		lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
 	configASSERT(0 == off);
 	configASSERT(0 == size % 512);
@@ -30,7 +79,7 @@ static int user_provided_block_device_prog(const struct lfs_config *c,
 // The state of an erased block is undefined. Negative error codes
 // are propogated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
-static int user_provided_block_device_erase(const struct lfs_config *c,
+int user_provided_block_device_erase(const struct lfs_config *c,
 		lfs_block_t block) {
 	(void)c;
 	(void)block;
@@ -39,13 +88,13 @@ static int user_provided_block_device_erase(const struct lfs_config *c,
 
 // Sync the state of the underlying block device. Negative error codes
 // are propogated to the user.
-static int user_provided_block_device_sync(const struct lfs_config *c) {
+int user_provided_block_device_sync(const struct lfs_config *c) {
 	(void)c;
 	return 0;
 }
 
 // configuration of the filesystem is provided by this struct
-struct lfs_config cfg =
+static struct lfs_config cfg =
 {
 	// block device operations
 	.read = user_provided_block_device_read,

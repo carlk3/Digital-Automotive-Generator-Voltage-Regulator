@@ -133,9 +133,9 @@ void cfg_save() {
 	/* Unlock the Flash to enable the flash control register access *************/
 	HAL_FLASH_Unlock();
 
-    /* Clear error programming flags */
-	uint32_t error = (FLASH->SR & FLASH_FLAG_SR_ERRORS);
-    __HAL_FLASH_CLEAR_FLAG(error);
+//    /* Clear error programming flags */
+//	uint32_t error = (FLASH->SR & FLASH_FLAG_SR_ERRORS);
+//    __HAL_FLASH_CLEAR_FLAG(error);
 
 	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK)
 		Error_Handler();

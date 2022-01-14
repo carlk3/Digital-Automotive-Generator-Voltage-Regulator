@@ -101,5 +101,31 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* rtcHandle)
 }
 
 /* USER CODE BEGIN 1 */
+time_t time(time_t *pxTime) {
+	// HAL_StatusTypeDef HAL_RTC_GetTime (RTC_HandleTypeDef * hrtc, RTC_TimeTypeDef * sTime, uint32_t Format)
+	RTC_TimeTypeDef Time;
+	if (HAL_OK != HAL_RTC_GetTime(&hrtc, &Time, RTC_FORMAT_BIN))
+		Error_Handler();
+	// HAL_StatusTypeDef HAL_RTC_GetDate (RTC_HandleTypeDef * hrtc, RTC_DateTypeDef * sDate, uint32_t Format)
+	RTC_DateTypeDef Date;
+	if (HAL_OK != HAL_RTC_GetDate(&hrtc, &Date, RTC_FORMAT_BIN))
+		Error_Handler();
+
+	struct tm timeinfo = { .tm_sec = Time.Seconds, /* Seconds.	[0-60] (1 leap second) */
+	.tm_min = Time.Minutes, /* Minutes.	[0-59] */
+	.tm_hour = Time.Hours, /* Hours.	[0-23] */
+	.tm_mday = Date.Date, /* Day.		[1-31] */
+	.tm_mon = Date.Month - 1, /* Month.	[0-11] */
+	.tm_year = Date.Year + 2000 - 1900, /* Year	- 1900.  */
+	.tm_wday = 0, /* Day of week.	[0-6] */
+	.tm_yday = 0, /* Days in year.[0-365]	*/
+	.tm_isdst = -1 /* DST.		[-1/0/1]*/
+	};
+	time_t epochtime = mktime(&timeinfo);
+	if (pxTime) {
+		*pxTime = epochtime;
+	}
+	return epochtime;
+}
 
 /* USER CODE END 1 */
