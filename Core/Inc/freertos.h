@@ -10,8 +10,9 @@
 
 #include "cmsis_os.h"
 
-extern osMessageQueueId_t RegulatorEvtQHandle;
+extern osMessageQueueId_t LoggerEvtQHandle;
 extern osMessageQueueId_t ConsoleEvtQHandle;
+extern osMessageQueueId_t RegulatorEvtQHandle;
 extern osTimerId_t PeriodHandle;
 extern osMutexId_t avg_data_mutexHandle;
 

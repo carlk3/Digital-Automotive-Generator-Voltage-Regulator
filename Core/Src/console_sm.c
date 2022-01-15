@@ -30,6 +30,17 @@ static evt_t cnsl_entry_evt = { CNSL_ENTRY_SIG, { 0 } };
 static evt_t cnsl_exit_evt = { CNSL_EXIT_SIG, { 0 } };
 
 static void cnsl_top_st(evt_t const *const pEvt);  // fwd decl
+static void cnsl_show_st(evt_t const *const pEvt);
+static void cnsl_stat_st(evt_t const *const pEvt);
+static void cnsl_cfg_st(evt_t const *const pEvt);
+static void cnsl_cfg_v_st(evt_t const *const pEvt);
+static void cnsl_cfg_c_st(evt_t const *const pEvt);
+static void cnsl_cfg_p_st(evt_t const *const pEvt);
+static void cnsl_cal_st(evt_t const *const pEvt);
+static void cnsl_cal_v_st(evt_t const *const pEvt);
+static void cnsl_cal_c_st(evt_t const *const pEvt);
+static void cnsl_cmd_st(evt_t const *const pEvt);
+
 static cnsl_t cnsl = {		// the state machine instance
 		cnsl_top_st, "", 0 };
 void cnsl_dispatch(evt_t const *evt) {
@@ -41,16 +52,6 @@ static void cnsl_tran(cnsl_state_t target) {
 	cnsl_dispatch(&cnsl_entry_evt); /* enter the target */
 }
 
-static void cnsl_show_st(evt_t const *const pEvt);
-static void cnsl_stat_st(evt_t const *const pEvt);
-static void cnsl_cfg_st(evt_t const *const pEvt);
-static void cnsl_cfg_v_st(evt_t const *const pEvt);
-static void cnsl_cfg_c_st(evt_t const *const pEvt);
-static void cnsl_cfg_p_st(evt_t const *const pEvt);
-static void cnsl_cal_st(evt_t const *const pEvt);
-static void cnsl_cal_v_st(evt_t const *const pEvt);
-static void cnsl_cal_c_st(evt_t const *const pEvt);
-static void cnsl_cmd_st(evt_t const *const pEvt);
 
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
@@ -122,10 +123,6 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			assert(osOK == rc);
 			break;
 		}
-//		case 'i':
-//			printf("\r\n");
-//			cnsl_tran(cnsl_run_littlefs_st);
-//			break;
 		default:
 			printf("\r\n");
 			cnsl_dispatch(&cnsl_entry_evt);

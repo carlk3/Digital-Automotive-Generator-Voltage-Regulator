@@ -27,11 +27,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "console_sm.h"
+#include "logger_sm.h"
 #include "regulator_sm.h"
 #include "data.h"
 #include "global.h"
 //
-#include "printf.h"
+#include "logger_sm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,7 +60,7 @@ typedef StaticSemaphore_t osStaticMutexDef_t;
 /* USER CODE END Variables */
 /* Definitions for Logger */
 osThreadId_t LoggerHandle;
-uint32_t LoggerBuffer[ 128 ];
+uint32_t LoggerBuffer[ 512 ];
 osStaticThreadDef_t LoggerControlBlock;
 const osThreadAttr_t Logger_attributes = {
   .name = "Logger",
@@ -67,11 +68,11 @@ const osThreadAttr_t Logger_attributes = {
   .cb_size = sizeof(LoggerControlBlock),
   .stack_mem = &LoggerBuffer[0],
   .stack_size = sizeof(LoggerBuffer),
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for Console */
 osThreadId_t ConsoleHandle;
-uint32_t ConsoleBuffer[ 3192 ];
+uint32_t ConsoleBuffer[ 1024 ];
 osStaticThreadDef_t ConsoleControlBlock;
 const osThreadAttr_t Console_attributes = {
   .name = "Console",
@@ -91,11 +92,11 @@ const osThreadAttr_t Regulator_attributes = {
   .cb_size = sizeof(RegulatorControlBlock),
   .stack_mem = &RegulatorBuffer[0],
   .stack_size = sizeof(RegulatorBuffer),
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for RegulatorEvtQ */
 osMessageQueueId_t RegulatorEvtQHandle;
-uint8_t RegulatorEvtQBuffer[ 32 * sizeof( evt_t ) ];
+uint8_t RegulatorEvtQBuffer[ 64 * sizeof( evt_t ) ];
 osStaticMessageQDef_t RegulatorEvtQControlBlock;
 const osMessageQueueAttr_t RegulatorEvtQ_attributes = {
   .name = "RegulatorEvtQ",
@@ -114,6 +115,17 @@ const osMessageQueueAttr_t ConsoleEvtQ_attributes = {
   .cb_size = sizeof(ConsoleEvtQControlBlock),
   .mq_mem = &ConsoleEvtQBuffer,
   .mq_size = sizeof(ConsoleEvtQBuffer)
+};
+/* Definitions for LoggerEvtQ */
+osMessageQueueId_t LoggerEvtQHandle;
+uint8_t LoggerQBuffer[ 64 * sizeof( evt_t ) ];
+osStaticMessageQDef_t LoggerQControlBlock;
+const osMessageQueueAttr_t LoggerEvtQ_attributes = {
+  .name = "LoggerEvtQ",
+  .cb_mem = &LoggerQControlBlock,
+  .cb_size = sizeof(LoggerQControlBlock),
+  .mq_mem = &LoggerQBuffer,
+  .mq_size = sizeof(LoggerQBuffer)
 };
 /* Definitions for Period */
 osTimerId_t PeriodHandle;
@@ -187,7 +199,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) 
 	/* Run time stack overflow checking is performed if
 	 configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
 	 called if a stack overflow is detected. */
-	printf("Task: %s: ", pcTaskName);
+	log_printf("Task: %s: ", pcTaskName);
 	configASSERT(!"Stack Overflow!\r\n");
 }
 /* USER CODE END 4 */
@@ -247,10 +259,13 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the queue(s) */
   /* creation of RegulatorEvtQ */
-  RegulatorEvtQHandle = osMessageQueueNew (32, sizeof(evt_t), &RegulatorEvtQ_attributes);
+  RegulatorEvtQHandle = osMessageQueueNew (64, sizeof(evt_t), &RegulatorEvtQ_attributes);
 
   /* creation of ConsoleEvtQ */
   ConsoleEvtQHandle = osMessageQueueNew (16, sizeof(evt_t), &ConsoleEvtQ_attributes);
+
+  /* creation of LoggerEvtQ */
+  LoggerEvtQHandle = osMessageQueueNew (64, sizeof(evt_t), &LoggerEvtQ_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
@@ -287,9 +302,13 @@ void LoggerTask(void *argument)
 {
   /* USER CODE BEGIN LoggerTask */
 	(void)argument;
+	evt_t evt = { LOG_ENTRY_SIG, { 0 } };
+	log_dispatch(&evt);
 	/* Infinite loop */
 	for (;;) {
-		osDelay(1);
+		osStatus_t rc = osMessageQueueGet(LoggerEvtQHandle, &evt, 0, osWaitForever);
+		configASSERT(osOK == rc);
+		log_dispatch(&evt);
 	}
   /* USER CODE END LoggerTask */
 }
@@ -305,7 +324,6 @@ void ConsoleTask(void *argument)
 {
   /* USER CODE BEGIN ConsoleTask */
 	(void)argument;
-//	printf("%s\r\n", __FUNCTION__);
 	evt_t evt = { CNSL_ENTRY_SIG, { 0 } };
 	cnsl_dispatch(&evt);
 	/* Infinite loop */
@@ -334,7 +352,7 @@ void RegulatorTask(void *argument)
 	/* Infinite loop */
 	for (;;) {
 		osStatus_t rc = osMessageQueueGet(RegulatorEvtQHandle, &evt, 0, osWaitForever);
-		assert(osOK == rc);
+		configASSERT(osOK == rc);
 		reg_dispatch(&evt);
 	}
   /* USER CODE END RegulatorTask */
@@ -346,10 +364,10 @@ void PeriodCallback(void *argument)
   /* USER CODE BEGIN PeriodCallback */
 	(void)argument;
 	evt_t evt = { PERIOD_SIG, { 0 } };
-	osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
-	assert(osOK == rc);
+	osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 1);
+	configASSERT(osOK == rc);
 //	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
-//	assert(osOK == rc);
+//	configASSERT(osOK == rc);
   /* USER CODE END PeriodCallback */
 }
 
@@ -360,8 +378,10 @@ void Period1HzCallback(void *argument)
 	(void)argument;
 	++uptime;
 	evt_t evt = { PERIOD_1HZ_SIG, { 0 } };
-	osStatus_t rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
-	assert(osOK == rc);
+	osStatus_t rc = osMessageQueuePut(LoggerEvtQHandle, &evt, 0, 0);
+	configASSERT(osOK == rc);
+	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
+	configASSERT(osOK == rc);
   /* USER CODE END Period1HzCallback */
 }
 

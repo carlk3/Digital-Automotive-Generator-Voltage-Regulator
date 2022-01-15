@@ -20,7 +20,7 @@
 //
 #include "regulator_sm.h"
 //
-#include "printf.h"
+#include "logger_sm.h"
 
 typedef struct reg_t reg_t;
 typedef void (*reg_state_t)(evt_t const* const);
@@ -48,10 +48,10 @@ static void reg_tran(reg_state_t target) {
 static void reg_sleep_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
-		printf("Going to sleep\r\n");
+		log_printf("Going to sleep\r\n");
 		// See vPortSuppressTicksAndSleep in
 		//    /VReg/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
-		printf("\r\nEntering Stop Mode\r\n");
+		log_printf("\r\nEntering Stop Mode\r\n");
 		osTimerStop(PeriodHandle);
 		enable_33_pwr(false);
 		HAL_SuspendTick();
@@ -69,7 +69,7 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 		__enable_irq();
 		enable_33_pwr(true);
 		osTimerStart(PeriodHandle, regulator_period);
-		printf("\r\nExited Stop Mode\r\n");
+		log_printf("\r\nExited Stop Mode\r\n");
 		break;
 	}
 	default:;
@@ -79,7 +79,7 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 static void reg_failed_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
-		printf("Regulator entering failed state\r\n");
+		log_printf("Regulator entering failed state\r\n");
 		  /* Stop COMP1 (don't wake up) */
 		if (HAL_COMP_Stop(&hcomp1) != HAL_OK) {
 			Error_Handler();
@@ -93,7 +93,7 @@ static void reg_failed_st(evt_t const *const pEvt) {
 static void reg_idle_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
-		printf("Regulator idle\r\n");
+		log_printf("Regulator idle\r\n");
 		break;
 	case REG_START_SIG:
 		reg_tran(reg_run_st);
@@ -109,7 +109,7 @@ static void reg_idle_st(evt_t const *const pEvt) {
 static void reg_run_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
-		printf("Regulator started\r\n");
+		log_printf("Regulator started\r\n");
 		break;
 	case REG_STOP_SIG:
 		reg_tran(reg_idle_st);
@@ -125,16 +125,16 @@ static void reg_run_st(evt_t const *const pEvt) {
 
 		if (get_Bplus_amps() > 1.1 * clim && get_Bplus_volts() < 0.1 * vlim) {
 			// Short?
-			printf("Probable short!\r\n");
+			log_printf("Probable short!\r\n");
 			reg_tran(reg_failed_st);
 		}
 		if (get_Bplus_volts() > 1.1 * vlim && get_Bplus_amps() < 0.1 * clim) {
 			// Open?
-			printf("Probable open!\r\n");
+			log_printf("Probable open!\r\n");
 			reg_tran(reg_failed_st);
 		}
 		if (data.internal_temp > 125.0) {
-			printf("Over temp!");
+			log_printf("Over temp!");
 			reg_tran(reg_failed_st);
 		}
 		bool next_enable = true;
@@ -156,7 +156,7 @@ static void reg_run_st(evt_t const *const pEvt) {
 		break;
 	}
 	case REG_EXIT_SIG:
-		printf("Regulator stopped\r\n");
+		log_printf("Regulator stopped\r\n");
 		enable_field(false);
 		break;
 	default:;

@@ -21,6 +21,8 @@ int __io_putchar(int ch) {
 
 // For Marco Paland's printf
 void _putchar(char character) {
+	if ('\n' == character)
+		__io_putchar('\r');
 	__io_putchar(character);
 }
 

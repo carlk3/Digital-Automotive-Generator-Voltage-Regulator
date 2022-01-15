@@ -19,26 +19,6 @@
 
 #define myASSERT configASSERT
 
-static lfs_t lfs;
-// configuration of the filesystem is provided by this struct
-static struct lfs_config cfg =
-{
-	// block device operations
-	.read = user_provided_block_device_read,
-	.prog = user_provided_block_device_prog,
-	.erase = user_provided_block_device_erase,
-	.sync = user_provided_block_device_sync,
-
-	// block device configuration
-	.read_size = 512,
-	.prog_size = 512,
-	.block_size = 512,
-//	.block_count = sd_sectors(),
-	.cache_size = 512,
-	.lookahead_size = 16,
-	.block_cycles = 500,
-};
-
 static void run_setrtc() {
 	const char *dateStr = strtok(NULL, " ");
 	if (!dateStr) {
@@ -129,6 +109,9 @@ static void run_lliot() {
 	extern int lliot(size_t pnum);
 	lliot(pnum);
 }
+static void run_simple() {
+	fs_test();
+}
 static void run_date() {
 	char buf[128] = { 0 };
 	time_t epoch_secs = time(NULL);
@@ -140,30 +123,16 @@ static void run_date() {
 										   // 001 to 366).
 	printf("Day of year: %s\r\n", buf);
 }
+
 static void run_format() {
+	if (!fs_init()) return;
 	/* Format the drive with default parameters */
 	int err = lfs_format(&lfs, &cfg);
 	if (LFS_ERR_OK != err)
 		print_fs_err(err);
 }
 static void run_mount() {
-
-	// Initialize:
-	sd_card_t *p_sd = sd_get_by_num(0);
-	configASSERT(p_sd);
-	int status = sd_init_card(p_sd);
-	if (status & STA_NOINIT) /* 0x01 */
-		printf("Drive not initialized\r\n");
-	if (status & STA_NODISK) /* 0x02 */
-		printf("No medium in the drive\r\n");
-	if (status & STA_PROTECT) /* 0x04 */
-		printf("Write protected\r\n");
-	if (status & (STA_NOINIT | STA_NODISK))
-		return;
-
-	cfg.context = p_sd;
-	cfg.block_count = p_sd->sectors;
-
+	if (!fs_init()) return;
 	// mount the filesystem
 	int err = lfs_mount(&lfs, &cfg);
 	if (LFS_ERR_OK != err)
@@ -182,8 +151,8 @@ static void run_getfree() {
 		return;
 	}
 	lfs_ssize_t free = cfg.block_count - allocated;
-	printf("Free blocks: %lu (%3.1g\% full)\r\n", free,
-			100.0 * allocated / cfg.block_count);
+	printf("Free blocks: %lu (%3.1f%% full)\r\n", free,
+			100.0f * allocated / cfg.block_count);
 }
 static void run_mkdir() {
 	char *arg1 = strtok(NULL, " ");
@@ -198,10 +167,10 @@ static void run_mkdir() {
 void run_ls() {
 	char *arg1 = strtok(NULL, " ");
 	if (!arg1) {
-		printf("Missing argument\r\n");
-		return;
+		arg1 = "/";
 	}
 	lfs_dir_t dir;
+	memset(&dir, 0, sizeof dir);
 
 	// Once open a directory can be used with read to iterate over files.
 	// Returns a negative error code on failure.
@@ -220,7 +189,10 @@ void run_ls() {
 	int rc;
 	do {
 		struct lfs_info info;
+		memset(&info, 0, sizeof info);
 		rc = lfs_dir_read(&lfs, &dir, &info);
+		if (!rc)
+			break;
 		if (rc < 0) {
 			print_fs_err(err);
 			break;
@@ -249,6 +221,7 @@ static void run_cat() {
 		return;
 	}
 	lfs_file_t file;
+	memset(&file, 0, sizeof file);
 	int err = lfs_file_open(&lfs, &file, arg1, LFS_O_RDONLY);
 	if (LFS_ERR_OK != err) {
 		print_fs_err(err);
@@ -258,12 +231,12 @@ static void run_cat() {
 	//
 	// Takes a buffer and size indicating where to store the read data.
 	// Returns the number of bytes read, or a negative error code on failure.
-	char buf[256];
+	char buf[128];
 	lfs_ssize_t sz;
 	do {
 		sz = lfs_file_read(&lfs, &file, buf, sizeof buf);
 		if (sz > 0)
-			printf("%.*s", buf, sz);
+			printf("%.*s", sz, buf);
 	} while (sz > 0);
 	if (sz < 0)
 		print_fs_err(err);
@@ -290,29 +263,22 @@ static cmd_def_t cmds[] =
 		"\te.g.:setrtc 16 3 21 0 4 0" },
 	{ "date", run_date, "date:\r\n Print current date and time" },
 	{ "lliot", run_lliot,
-		"lliot:\r\n !DESTRUCTIVE! Low Level I/O Driver Test\r\n"
-				"\te.g.: lliot" },
+		"lliot:\r\n !DESTRUCTIVE! Low Level I/O Driver Test" },
+	{ "simple", run_simple, "simple:\r\n  Run simple FS tests" },
 	{ "format", run_format,
-		"format:\r\n"
-				"  Creates a volume on the SD card.\r\n"
-				"\te.g.: format" },
+		"format:\r\n Creates a volume on the SD card." },
 	{ "mount", run_mount,
-		"mount:\r\n"
-				"  Register the work area of the volume\r\n"
-				"\te.g.: mount" },
+		"mount:\r\n Register the work area of the volume" },
 	{ "unmount", run_unmount,
-		"unmount:\r\n"
-				"  Unregister the work area of the volume" },
+		"unmount:\r\n Unregister the work area of the volume" },
 	{ "getfree", run_getfree,
-			"getfree:\r\n"
-				"  Print the free space on drive" },
+			"getfree:\r\n Print the free space on drive" },
 	{ "mkdir", run_mkdir, "mkdir <path>:\r\n"
 		"  Make a new directory.\r\n"
 		"  <path> Specifies the name of the directory to be created.\r\n"
 		"\te.g.: mkdir /dir1" },
-	{ "ls", run_ls, "ls:\r\n  List directory" },
+	{ "ls", run_ls, "ls <path>:\r\n  List directory" },
 	{ "cat", run_cat, "cat <filename>:\r\n  Type file contents" },
-//	{ "simple", simple, "simple:\r\n  Run simple FS tests" },
 	{ "help", run_help,
 		"help:\r\n"
 		"  Shows this command help." }

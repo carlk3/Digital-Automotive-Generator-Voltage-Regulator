@@ -5,8 +5,7 @@
 #include "printf.h"
 
 // variables used by the filesystem
-static lfs_t lfs;
-static lfs_file_t file;
+lfs_t lfs;
 
 void print_fs_err(int err) {
 	switch (err) {
@@ -59,7 +58,7 @@ void print_fs_err(int err) {
 
 // Read a region in a block. Negative error codes are propogated
 // to the user.
-int user_provided_block_device_read(const struct lfs_config *c,
+static int user_provided_block_device_read(const struct lfs_config *c,
 		lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size) {
 	configASSERT(0 == off);
 	configASSERT(0 == size % 512);
@@ -68,7 +67,7 @@ int user_provided_block_device_read(const struct lfs_config *c,
 // Program a region in a block. The block must have previously
 // been erased. Negative error codes are propogated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
-int user_provided_block_device_prog(const struct lfs_config *c,
+static int user_provided_block_device_prog(const struct lfs_config *c,
 		lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
 	configASSERT(0 == off);
 	configASSERT(0 == size % 512);
@@ -79,7 +78,7 @@ int user_provided_block_device_prog(const struct lfs_config *c,
 // The state of an erased block is undefined. Negative error codes
 // are propogated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
-int user_provided_block_device_erase(const struct lfs_config *c,
+static int user_provided_block_device_erase(const struct lfs_config *c,
 		lfs_block_t block) {
 	(void)c;
 	(void)block;
@@ -88,13 +87,13 @@ int user_provided_block_device_erase(const struct lfs_config *c,
 
 // Sync the state of the underlying block device. Negative error codes
 // are propogated to the user.
-int user_provided_block_device_sync(const struct lfs_config *c) {
+static int user_provided_block_device_sync(const struct lfs_config *c) {
 	(void)c;
 	return 0;
 }
 
 // configuration of the filesystem is provided by this struct
-static struct lfs_config cfg =
+struct lfs_config cfg =
 {
 	// block device operations
 	.read = user_provided_block_device_read,
@@ -112,29 +111,33 @@ static struct lfs_config cfg =
 	.block_cycles = 500,
 };
 
-// entry point
-//int main(void) {
-int fs_test(void) {
-//
-//	if (!sd_init_driver())
-//		return -1;
-
+bool fs_init() {
+	// Initialize:
 	sd_card_t *p_sd = sd_get_by_num(0);
 	configASSERT(p_sd);
 	int status = sd_init_card(p_sd);
-	switch (status) {
-	case STA_NOINIT: /* 0x01 */
+	if (status & STA_NOINIT) /* 0x01 */
 		printf("Drive not initialized\r\n");
-		return -2;
-	case STA_NODISK: /* 0x02 */
+	if (status & STA_NODISK) /* 0x02 */
 		printf("No medium in the drive\r\n");
-		return -3;
-	case STA_PROTECT: /* 0x04 */
+	if (status & STA_PROTECT) /* 0x04 */
 		printf("Write protected\r\n");
-		return -4;
-	}
+	if (status & (STA_NOINIT | STA_NODISK))
+		return false;
+
 	cfg.context = p_sd;
 	cfg.block_count = p_sd->sectors;
+	return true;
+}
+
+// entry point
+//int main(void) {
+int fs_test(void) {
+	lfs_file_t file;
+	memset(&file, 0, sizeof file);
+
+	if (!fs_init())
+		return -1;
 
 // mount the filesystem
 	int err = lfs_mount(&lfs, &cfg);
