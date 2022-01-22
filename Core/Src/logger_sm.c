@@ -23,6 +23,7 @@ static evt_t log_exit_evt = { LOG_EXIT_SIG, { 0 } };
 
 static void log_run_st(evt_t const *const pEvt);  // fwd decl
 static void log_failed_st(evt_t const *const pEvt);
+static void log_idle_st(evt_t const *const pEvt);
 
 static log_t log = { log_run_st }; // the state machine instance
 
@@ -43,6 +44,20 @@ static void log_failed_st(evt_t const *const pEvt) {
 		;
 	}
 }
+static void log_idle_st(evt_t const *const pEvt) {
+	switch (pEvt->sig) {
+	case LOG_ENTRY_SIG: {
+		uint32_t flags = osEventFlagsSet(TaskStoppedHandle, TASK_LOG);
+		configASSERT(!(0x80000000 & flags));
+		printf("Logger idle\r\n");
+		break;
+	}
+	case LOG_START_SIG:
+		log_tran(log_run_st);
+	default:
+		;
+	}
+}
 
 static lfs_file_t file;
 
@@ -50,8 +65,10 @@ static void log_run_st(evt_t const *const pEvt) {
 	static bool line_begin;
 	switch (pEvt->sig) {
 	case LOG_ENTRY_SIG:
-		if (!fs_init())
+		if (!fs_init()) {
 			log_tran(log_failed_st);
+			break;
+		}
 		// mount the filesystem
 		int err = lfs_mount(&lfs, &cfg);
 		if (LFS_ERR_OK != err)
@@ -66,6 +83,7 @@ static void log_run_st(evt_t const *const pEvt) {
 			if (LFS_ERR_OK != err) {
 				print_fs_err(err);
 				log_tran(log_failed_st);
+				break;
 			}
 		}
 		memset(&file, 0, sizeof file);
@@ -74,11 +92,13 @@ static void log_run_st(evt_t const *const pEvt) {
 		if (LFS_ERR_OK != err) {
 			print_fs_err(err);
 			log_tran(log_failed_st);
+			break;
 		}
 		lfs_ssize_t nfw = lfs_file_write(&lfs, &file, "\n", 1);
-	    if (nfw < 0) {
+		if (nfw < 0) {
 			print_fs_err(nfw);
 			log_tran(log_failed_st);
+			break;
 		} else {
 			configASSERT(1 == nfw);
 		}
@@ -88,39 +108,58 @@ static void log_run_st(evt_t const *const pEvt) {
 		char c = pEvt->content.data;
 		lfs_ssize_t nfw;
 		if (line_begin) {
-		    char lbuf[32];
-		    const time_t secs = time(NULL);
-		    struct tm tmbuf;
-		    struct tm *ptm = localtime_r(&secs, &tmbuf);
-		    size_t n = strftime(lbuf, sizeof lbuf, "%F,%T,", ptm);
-		    configASSERT(n);
-		    nfw = lfs_file_write(&lfs, &file, lbuf, n);
-		    if (nfw < 0) {
+			char lbuf[32];
+			const time_t secs = time(NULL);
+			struct tm tmbuf;
+			struct tm *ptm = localtime_r(&secs, &tmbuf);
+			size_t n = strftime(lbuf, sizeof lbuf, "%F,%T,", ptm);
+			configASSERT(n);
+			nfw = lfs_file_write(&lfs, &file, lbuf, n);
+			if (nfw < 0) {
 				print_fs_err(nfw);
 				log_tran(log_failed_st);
+				break;
 			} else {
-				configASSERT(nfw == (int)n);
+				configASSERT(nfw == (int )n);
 			}
-		    line_begin = false;
+			line_begin = false;
 		}
 		nfw = lfs_file_write(&lfs, &file, &c, 1);
-	    if (nfw < 0) {
+		if (nfw < 0) {
 			print_fs_err(nfw);
 			log_tran(log_failed_st);
+			break;
 		} else {
 			configASSERT(1 == nfw);
 		}
-		int err = lfs_file_sync(&lfs, &file);
-		if (LFS_ERR_OK != err) {
-			print_fs_err(err);
-			log_tran(log_failed_st);
-		}
-		if ('\n' == c)
+		if ('\n' == c) {
+			int err = lfs_file_sync(&lfs, &file);
+			if (LFS_ERR_OK != err) {
+				print_fs_err(err);
+				log_tran(log_failed_st);
+				break;
+			}
 			line_begin = true;
+		}
 		break;
 	}
 	case PERIOD_1HZ_SIG: {
 		break;
+	}
+	case LOG_STOP_SIG:
+		log_tran(log_idle_st);
+		break;
+	case LOG_EXIT_SIG: {
+		int err = lfs_file_close(&lfs, &file);
+		if (LFS_ERR_OK != err) {
+			print_fs_err(err);
+			break;
+		}
+		err = lfs_unmount(&lfs);
+		if (LFS_ERR_OK != err) {
+			print_fs_err(err);
+			break;
+		}
 	}
 	default:
 		;
@@ -128,16 +167,15 @@ static void log_run_st(evt_t const *const pEvt) {
 }
 
 // define the output function
-static void log_putch(char character, void* arg)
-{
+static void log_putch(char character, void *arg) {
 	// opt. evaluate the argument and send the char somewhere
-	(void)arg;
+	(void) arg;
 	evt_t evt = { LOG_PUTCH_SIG, { .data = character } };
 	osStatus_t rc = osMessageQueuePut(LoggerEvtQHandle, &evt, 0, 100);
 	configASSERT(osOK == rc);
 }
 
-void log_printf( const char * const pcFormat, ... ) {
+void log_printf(const char *const pcFormat, ...) {
 	va_list xArgs;
 	va_start(xArgs, pcFormat);
 	printf(pcFormat, xArgs);

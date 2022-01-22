@@ -134,8 +134,8 @@ void cfg_save() {
 	HAL_FLASH_Unlock();
 
 //    /* Clear error programming flags */
-//	uint32_t error = (FLASH->SR & FLASH_FLAG_SR_ERRORS);
-//    __HAL_FLASH_CLEAR_FLAG(error);
+	uint32_t error = (FLASH->SR & FLASH_FLAG_SR_ERRORS);
+    __HAL_FLASH_CLEAR_FLAG(error);
 
 	if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK)
 		Error_Handler();

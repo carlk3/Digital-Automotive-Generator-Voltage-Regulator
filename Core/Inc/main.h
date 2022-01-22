@@ -44,6 +44,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
 #include "cmsis_os.h"
 /* USER CODE END Includes */
 
@@ -55,6 +56,8 @@ typedef enum {
 	CNSL_ENTRY_SIG,
 	CNSL_EXIT_SIG,
 	LOG_ENTRY_SIG,
+	LOG_START_SIG,
+	LOG_STOP_SIG,
 	LOG_EXIT_SIG,
 	LOG_PUTCH_SIG,
 	REG_ENTRY_SIG,
@@ -76,6 +79,11 @@ typedef struct evt {
 	evt_data_t content;
 } evt_t;
 
+enum {
+	TASK_REG = 1 << 1,
+	TASK_LOG = 1 << 2,
+	TASK_CNSL = 1 << 3
+};
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -94,7 +102,8 @@ typedef struct evt {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void SystemClock_Config(void);
+void SystemClock_Config(void); // Called in regulator_sm.c
+//void flash(unsigned n, bool forever);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -124,8 +133,8 @@ void SystemClock_Config(void);
 #define SPI1_MOSI_GPIO_Port GPIOB
 #define D5___Regulator_Switch_Control_Pin GPIO_PIN_6
 #define D5___Regulator_Switch_Control_GPIO_Port GPIOB
-#define D4___3_3v_On_Off_Pin GPIO_PIN_7
-#define D4___3_3v_On_Off_GPIO_Port GPIOB
+#define D4___Pwr_On_Off_Pin GPIO_PIN_7
+#define D4___Pwr_On_Off_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

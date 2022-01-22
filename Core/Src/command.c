@@ -169,8 +169,8 @@ void run_ls() {
 	if (!arg1) {
 		arg1 = "/";
 	}
-	lfs_dir_t dir;
-	memset(&dir, 0, sizeof dir);
+	lfs_dir_t dir = {0};
+//	memset(&dir, 0, sizeof dir);
 
 	// Once open a directory can be used with read to iterate over files.
 	// Returns a negative error code on failure.

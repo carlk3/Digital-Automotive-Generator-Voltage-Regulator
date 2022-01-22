@@ -7,9 +7,10 @@
 //#include "freertos.h"
 //
 #include "main.h"
+#include "adc.h"
 //
 #include "config.h"
-
+//
 #include "analog.h"
 
 adc_raw_rec_t raw_recs;

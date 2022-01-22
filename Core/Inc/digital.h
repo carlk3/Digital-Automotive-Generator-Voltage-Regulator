@@ -10,7 +10,7 @@
 
 #include <stdbool.h>
 
-void enable_33_pwr(bool enable);
+void enable_pwr(bool enable);
 void enable_field(bool enable);
 
 //HAL_GPIO_WritePin(GPIOA, D10___SPI_SS_Pin|D2___Red_LED_Pin, GPIO_PIN_RESET);

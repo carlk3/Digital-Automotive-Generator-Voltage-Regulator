@@ -147,7 +147,7 @@ static void cnsl_show_st(evt_t const *const pEvt) {
 	case PERIOD_1HZ_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("%6.3g %6.3g %6.3g %6.3g %6.3g\r\n", data.rpm, data.Bvolts,
+		printf("%6.0f %6.2f %6.2f %6.1f %6.1f\r\n", data.rpm, data.Bvolts,
 				data.Bamps, data.internal_temp, data.ADC11_degC);
 		break;
 	}
@@ -256,7 +256,7 @@ static void cnsl_cfg_st(evt_t const *const pEvt) {
 static void cnsl_cfg_v_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Configure Voltage Limit\r\n"
+		printf("\nConfigure Voltage Limit\r\n"
 				"[Enter new limit in volts,\r\n"
 				"or anything else to quit]\r\n");
 		printf("Existing: %6.3g\r\n", cfg_get_vlim());
@@ -292,7 +292,7 @@ static void cnsl_cfg_v_st(evt_t const *const pEvt) {
 static void cnsl_cfg_c_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Configure Current Limit\r\n"
+		printf("\nConfigure Current Limit\r\n"
 				"[Enter new limit in amps,\r\n"
 				"or anything else to quit]\r\n");
 		printf("Existing: %6.3g\r\n", cfg_get_clim());
@@ -367,7 +367,7 @@ static void cnsl_cal_st(evt_t const *const pEvt) {
 	case CNSL_ENTRY_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("Calibration\r\n"
+		printf("\nCalibration\r\n"
 		"  V: Voltage sense: %6.3g\r\n"
 		"  C: Current sense: %6.3g\r\n"
 		"Enter V or C to calibrate,\r\n"
@@ -401,7 +401,7 @@ static void cnsl_cal_v_st(evt_t const *const pEvt) {
 	case CNSL_ENTRY_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("Calibrate Voltage Sense\r\n"
+		printf("\nCalibrate Voltage Sense\r\n"
 				"[Enter true voltage, \r\n"
 				"or anything else to quit] \r\n");
 		printf("Sensed: %6.3g\r\n", data.Bvolts);
@@ -431,7 +431,7 @@ static void cnsl_cal_v_st(evt_t const *const pEvt) {
 			}
 			cnsl_dispatch(&cnsl_entry_evt);
 		} else {
-			cnsl_tran(cnsl_cfg_st);
+			cnsl_tran(cnsl_cal_st);
 		}
 		break;
 	} // case KEYSTROKE_SIG
@@ -444,10 +444,10 @@ static void cnsl_cal_c_st(evt_t const *const pEvt) {
 	case CNSL_ENTRY_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("Calibrate Voltage Sense\r\n"
-				"[Enter true voltage, \r\n"
+		printf("\nCalibrate Current Sense\r\n"
+				"[Enter true current, \r\n"
 				"or anything else to quit] \r\n");
-		printf("Sensed: %6.3g\r\n", data.Bvolts);
+		printf("Sensed: %6.3g\r\n", data.Bamps);
 		printf("New: ");
 		memset(cnsl.buf, 0, sizeof cnsl.buf);
 		cnsl.buf_end = 0;
@@ -467,17 +467,27 @@ static void cnsl_cal_c_st(evt_t const *const pEvt) {
 			float truth;
 			int rc = sscanf(cnsl.buf, "%f", &truth);
 			if (1 == rc) {
+//				if (fabs(*pOldV - v) >= FLT_EPSILON * fmaxf(fabs(*pOldV), fabs(v)))
+				if (fabs(truth) < FLT_EPSILON) {
+					printf("Error: current too low for calibration\n");
+					cnsl_dispatch(&cnsl_entry_evt);
+				}
+
 				data_rec_t data;
 				get_data_1sec_avg(&data);
 
+				// Stop regulator to get zero current:
 				evt_t evt = {REG_STOP_SIG, { 0 } };
-				osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
-				assert(osOK == rc);
-
+				osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 10);
+				if (osOK != rc) {
+					printf("Dropped REG_STOP_SIG to RegulatorEvtQ\n");
+				} else {
+					uint32_t flags = osEventFlagsWait(TaskStoppedHandle, TASK_REG, osFlagsWaitAll, 3000);
+					configASSERT(!(0x80000000 & flags));
+				}
 				uint16_t raw_zero = get_Bplus_amps_raw();
-
 				evt.sig = REG_START_SIG;
-				rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+				rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 10);
 				assert(osOK == rc);
 
 				cfg_set_Bplus_amp_scale(truth / (data.Bamps_raw - raw_zero));
@@ -486,7 +496,7 @@ static void cnsl_cal_c_st(evt_t const *const pEvt) {
 			}
 			cnsl_dispatch(&cnsl_entry_evt);
 		} else {
-			cnsl_tran(cnsl_cfg_st);
+			cnsl_tran(cnsl_cal_st);
 		}
 		break;
 	} // case KEYSTROKE_SIG

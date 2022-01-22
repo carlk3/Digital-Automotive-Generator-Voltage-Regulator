@@ -95,7 +95,20 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+static void flash(unsigned n, bool forever) {
+	HAL_GPIO_WritePin(D2___Red_LED_GPIO_Port, D2___Red_LED_Pin, GPIO_PIN_RESET);
+	for (size_t j = 0; j < 3 || forever; ++j) {
+		for (size_t i = 0; i < n; ++i) {
+			HAL_GPIO_WritePin(D2___Red_LED_GPIO_Port, D2___Red_LED_Pin, GPIO_PIN_SET);
+			/* Insert delay 100 ms */
+			HAL_Delay(200);
+			HAL_GPIO_WritePin(D2___Red_LED_GPIO_Port, D2___Red_LED_Pin, GPIO_PIN_RESET);
+			/* Insert delay 100 ms */
+			HAL_Delay(200);
+		}
+		HAL_Delay(500);
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -206,14 +219,15 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = 0;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 10;
+  RCC_OscInitStruct.PLL.PLLN = 40;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -233,6 +247,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  /** Enable MSI Auto calibration
+  */
+  HAL_RCCEx_EnableMSIPLLMode();
 }
 
 /* USER CODE BEGIN 4 */
@@ -345,6 +362,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
+	flash(10, true);
 	printf("Error!\r\n");
 	__disable_irq();
 	while (1) {

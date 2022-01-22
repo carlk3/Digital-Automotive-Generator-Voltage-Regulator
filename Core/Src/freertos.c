@@ -32,7 +32,7 @@
 #include "data.h"
 #include "global.h"
 //
-#include "logger_sm.h"
+#include "printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,6 +40,7 @@ typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticQueue_t osStaticMessageQDef_t;
 typedef StaticTimer_t osStaticTimerDef_t;
 typedef StaticSemaphore_t osStaticMutexDef_t;
+typedef StaticEventGroup_t osStaticEventGroupDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -143,6 +144,22 @@ const osTimerAttr_t Period1Hz_attributes = {
   .cb_mem = &Period1HzControlBlock,
   .cb_size = sizeof(Period1HzControlBlock),
 };
+/* Definitions for ActivityTimer */
+osTimerId_t ActivityTimerHandle;
+osStaticTimerDef_t ActivityTimerControlBlock;
+const osTimerAttr_t ActivityTimer_attributes = {
+  .name = "ActivityTimer",
+  .cb_mem = &ActivityTimerControlBlock,
+  .cb_size = sizeof(ActivityTimerControlBlock),
+};
+/* Definitions for CnslActivityTimer */
+osTimerId_t CnslActivityTimerHandle;
+osStaticTimerDef_t CnslActivityTimerControlBlock;
+const osTimerAttr_t CnslActivityTimer_attributes = {
+  .name = "CnslActivityTimer",
+  .cb_mem = &CnslActivityTimerControlBlock,
+  .cb_size = sizeof(CnslActivityTimerControlBlock),
+};
 /* Definitions for avg_data_mutex */
 osMutexId_t avg_data_mutexHandle;
 osStaticMutexDef_t avg_data_mutexControlBlock;
@@ -150,6 +167,14 @@ const osMutexAttr_t avg_data_mutex_attributes = {
   .name = "avg_data_mutex",
   .cb_mem = &avg_data_mutexControlBlock,
   .cb_size = sizeof(avg_data_mutexControlBlock),
+};
+/* Definitions for TaskStopped */
+osEventFlagsId_t TaskStoppedHandle;
+osStaticEventGroupDef_t TaskStoppedControlBlock;
+const osEventFlagsAttr_t TaskStopped_attributes = {
+  .name = "TaskStopped",
+  .cb_mem = &TaskStoppedControlBlock,
+  .cb_size = sizeof(TaskStoppedControlBlock),
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -162,6 +187,8 @@ void ConsoleTask(void *argument);
 void RegulatorTask(void *argument);
 void PeriodCallback(void *argument);
 void Period1HzCallback(void *argument);
+void ActivityTimerCallback(void *argument);
+void CnslActivityTimerCallback(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -248,6 +275,12 @@ void MX_FREERTOS_Init(void) {
   /* creation of Period1Hz */
   Period1HzHandle = osTimerNew(Period1HzCallback, osTimerPeriodic, NULL, &Period1Hz_attributes);
 
+  /* creation of ActivityTimer */
+  ActivityTimerHandle = osTimerNew(ActivityTimerCallback, osTimerOnce, NULL, &ActivityTimer_attributes);
+
+  /* creation of CnslActivityTimer */
+  CnslActivityTimerHandle = osTimerNew(CnslActivityTimerCallback, osTimerOnce, NULL, &CnslActivityTimer_attributes);
+
   /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
 
@@ -284,6 +317,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
   /* USER CODE END RTOS_THREADS */
+
+  /* creation of TaskStopped */
+  TaskStoppedHandle = osEventFlagsNew(&TaskStopped_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
 	/* add events, ... */
@@ -331,6 +367,11 @@ void ConsoleTask(void *argument)
 		// osStatus_t 	osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *msg_prio, uint32_t timeout)
 		osStatus_t rc = osMessageQueueGet(ConsoleEvtQHandle, &evt, 0, osWaitForever);
 		configASSERT(osOK == rc);
+		// Keep regulator from going to sleep if there is no D+ voltage:
+		if (KEYSTROKE_SIG == evt.sig) {
+			osStatus_t rc = osTimerStart(CnslActivityTimerHandle, 15*60*1000);
+			configASSERT(osOK == rc);
+		}
 		cnsl_dispatch(&evt);
 	}
   /* USER CODE END ConsoleTask */
@@ -378,11 +419,36 @@ void Period1HzCallback(void *argument)
 	(void)argument;
 	++uptime;
 	evt_t evt = { PERIOD_1HZ_SIG, { 0 } };
-	osStatus_t rc = osMessageQueuePut(LoggerEvtQHandle, &evt, 0, 0);
+	osStatus_t rc = osMessageQueuePut(LoggerEvtQHandle, &evt, 0, 1000);
+	if (osOK != rc)
+		printf("Dropped PERIOD_1HZ_SIG to LoggerEvtQ\n");
+	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 10);
 	configASSERT(osOK == rc);
-	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
+	rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 10);
 	configASSERT(osOK == rc);
   /* USER CODE END Period1HzCallback */
+}
+
+/* ActivityTimerCallback function */
+void ActivityTimerCallback(void *argument)
+{
+  /* USER CODE BEGIN ActivityTimerCallback */
+	(void)argument;
+	// Don't put Reg to sleep if console is in use
+	if (!osTimerIsRunning(CnslActivityTimerHandle)) {
+		evt_t evt = { REG_SLEEP_SIG, { 0 } };
+		osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
+		assert(osOK == rc);
+	}
+  /* USER CODE END ActivityTimerCallback */
+}
+
+/* CnslActivityTimerCallback function */
+void CnslActivityTimerCallback(void *argument)
+{
+  /* USER CODE BEGIN CnslActivityTimerCallback */
+	(void)argument;
+  /* USER CODE END CnslActivityTimerCallback */
 }
 
 /* Private application code --------------------------------------------------*/

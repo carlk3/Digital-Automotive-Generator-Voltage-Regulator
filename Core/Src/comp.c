@@ -101,6 +101,7 @@ void HAL_COMP_MspDeInit(COMP_HandleTypeDef* compHandle)
 }
 
 /* USER CODE BEGIN 1 */
+#if 0
 /**
  * @brief  Comparator trigger callback.
  * @param  hcomp  COMP handle
@@ -118,5 +119,6 @@ void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
 //		printf("Comparator triggered: input voltage is lower than VREFINT\r\n");
 	}
 }
+#endif
 
 /* USER CODE END 1 */

@@ -198,21 +198,39 @@ void TIM1_UP_TIM16_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
+
+	bool proceed = true;
+	if (LL_USART_IsActiveFlag_FE(USART2)) {
+//		framing error
+		LL_USART_ClearFlag_FE(USART2);
+		proceed = false;
+	}
+	if (LL_USART_IsActiveFlag_PE(USART2)) {
+		LL_USART_ClearFlag_PE(USART2);
+//		parity error
+		proceed = false;
+	}
+	if (LL_USART_IsActiveFlag_NE(USART2)) {
+//		noise error
+		LL_USART_ClearFlag_NE(USART2);
+		proceed = false;
+	}
+	if (LL_USART_IsActiveFlag_ORE(USART2)) {
+//		overrun error
+		LL_USART_ClearFlag_ORE(USART2);
+	}
+
 	/* Check RXNE flag value in ISR register */
 	if (LL_USART_IsActiveFlag_RXNE(USART2)
 			&& LL_USART_IsEnabledIT_RXNE(USART2)) {
-		/* RXNE flag will be cleared by reading of RDR register (done in call) */
-		/* Call function in charge of handling Character reception */
-		USART_CharReception_Callback();
-	} else {
-		if (LL_USART_IsActiveFlag_FE(USART2))
-			LL_USART_ClearFlag_FE(USART2);
-		if (LL_USART_IsActiveFlag_PE(USART2))
-			LL_USART_ClearFlag_PE(USART2);
-		if (LL_USART_IsActiveFlag_NE(USART2))
-			LL_USART_ClearFlag_NE(USART2);
-		if (LL_USART_IsActiveFlag_ORE(USART2))
-			LL_USART_ClearFlag_ORE(USART2);
+		if (proceed) {
+			/* RXNE flag will be cleared by reading of RDR register (done in call) */
+			/* Call function in charge of handling Character reception */
+			USART_CharReception_Callback();
+		} else {
+			// Clear RXNE flag:
+			LL_USART_ReceiveData8(USART2);
+		}
 	}
   /* USER CODE END USART2_IRQn 0 */
   /* USER CODE BEGIN USART2_IRQn 1 */

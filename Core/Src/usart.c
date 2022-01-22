@@ -93,9 +93,10 @@ void MX_USART2_UART_Init(void)
 	while ((!(LL_USART_IsActiveFlag_TEACK(USART2)))
 			|| (!(LL_USART_IsActiveFlag_REACK(USART2)))) {
 	}
+//	flash(1, false);
 	/* Enable RXNE and Error interrupts */
 	LL_USART_EnableIT_RXNE(USART2);
-	LL_USART_EnableIT_ERROR(USART2);
+//	LL_USART_EnableIT_ERROR(USART2);
   /* USER CODE END USART2_Init 2 */
 
 }
