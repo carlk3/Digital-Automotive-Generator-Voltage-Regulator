@@ -22,42 +22,42 @@
 static void run_setrtc() {
 	const char *dateStr = strtok(NULL, " ");
 	if (!dateStr) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	}
 	int date = atoi(dateStr);
 
 	const char *monthStr = strtok(NULL, " ");
 	if (!monthStr) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	}
 	int month = atoi(monthStr);
 
 	const char *yearStr = strtok(NULL, " ");
 	if (!yearStr) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	}
 	int year = atoi(yearStr);
 
 	const char *hourStr = strtok(NULL, " ");
 	if (!hourStr) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	}
 	int hour = atoi(hourStr);
 
 	const char *minStr = strtok(NULL, " ");
 	if (!minStr) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	};
 	int min = atoi(minStr);
 
 	const char *secStr = strtok(NULL, " ");
 	if (!secStr) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	}
 	int sec = atoi(secStr);
@@ -118,10 +118,10 @@ static void run_date() {
 	struct tm *ptm = localtime(&epoch_secs);
 	size_t n = strftime(buf, sizeof(buf), "%c", ptm);
 	myASSERT(n);
-	printf("%s\r\n", buf);
+	printf("%s\n", buf);
 	strftime(buf, sizeof(buf), "%j", ptm); // The day of the year as a decimal number (range
 										   // 001 to 366).
-	printf("Day of year: %s\r\n", buf);
+	printf("Day of year: %s\n", buf);
 }
 
 static void run_format() {
@@ -151,13 +151,13 @@ static void run_getfree() {
 		return;
 	}
 	lfs_ssize_t free = cfg.block_count - allocated;
-	printf("Free blocks: %lu (%3.1f%% full)\r\n", free,
+	printf("Free blocks: %lu (%3.1f%% full)\n", free,
 			100.0f * allocated / cfg.block_count);
 }
 static void run_mkdir() {
 	char *arg1 = strtok(NULL, " ");
 	if (!arg1) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	}
 	int err = lfs_mkdir(&lfs, arg1);
@@ -179,7 +179,7 @@ void run_ls() {
 		print_fs_err(err);
 		return;
 	}
-	printf("Directory Listing:\r\n");
+	printf("Directory Listing:\n");
 
 	// Read an entry in the directory
 	//
@@ -188,8 +188,7 @@ void run_ls() {
 	// or a negative error code on failure.
 	int rc;
 	do {
-		struct lfs_info info;
-		memset(&info, 0, sizeof info);
+		struct lfs_info info = {0};
 		rc = lfs_dir_read(&lfs, &dir, &info);
 		if (!rc)
 			break;
@@ -198,9 +197,9 @@ void run_ls() {
 			break;
 		}
 		if (LFS_TYPE_DIR == info.type) {
-			printf("\t%lu\t[DIR]\t%s\r\n", info.size, info.name);
+			printf("\t%lu\t[DIR]\t%s\n", info.size, info.name);
 		} else {
-			printf("\t%lu\t%s\r\n", info.size, info.name);
+			printf("\t%lu\t%s\n", info.size, info.name);
 		}
 	} while (rc > 0);
 
@@ -217,11 +216,10 @@ void run_ls() {
 static void run_cat() {
 	char *arg1 = strtok(NULL, " ");
 	if (!arg1) {
-		printf("Missing argument\r\n");
+		printf("Missing argument\n");
 		return;
 	}
-	lfs_file_t file;
-	memset(&file, 0, sizeof file);
+	lfs_file_t file = {0};
 	int err = lfs_file_open(&lfs, &file, arg1, LFS_O_RDONLY);
 	if (LFS_ERR_OK != err) {
 		print_fs_err(err);
@@ -245,6 +243,30 @@ static void run_cat() {
 	if (LFS_ERR_OK != err)
 		print_fs_err(err);
 }
+void run_rm() {
+	char *arg1 = strtok(NULL, " ");
+	if (!arg1) {
+		printf("Missing argument\n");
+		return;
+	}
+	int err = lfs_remove(&lfs, arg1);
+	if (LFS_ERR_OK != err)
+		print_fs_err(err);
+}
+void run_task_stats() {
+	printf(
+        "Task          State  Priority  Stack	"
+        "#\n************************************************\n");
+    /* NOTE - for simplicity, this example assumes the
+    write buffer length is adequate, so does not check for buffer overflows. */
+	char buf[256] = {0};
+	buf[255] = 0xA5;  // Crude overflow guard
+    /* Generate a table of task stats. */
+    vTaskList(buf);
+    configASSERT(0xA5 == buf[255]);
+    printf("%s\n", buf);
+}
+
 static void run_help();
 
 typedef void (*p_fn_t)();
@@ -256,36 +278,38 @@ typedef struct {
 
 static cmd_def_t cmds[] =
 {
-	{ "setrtc", run_setrtc, "setrtc <DD> <MM> <YY> <hh> <mm> <ss>:\r\n"
-		"  Set Real Time Clock\r\n"
+	{ "setrtc", run_setrtc, "setrtc <DD> <MM> <YY> <hh> <mm> <ss>:\n"
+		"  Set Real Time Clock\n"
 		"  Parameters: new date (DD MM YY) new time in 24-hour format "
-		"(hh mm ss)\r\n"
+		"(hh mm ss)\n"
 		"\te.g.:setrtc 16 3 21 0 4 0" },
-	{ "date", run_date, "date:\r\n Print current date and time" },
+	{ "date", run_date, "date:\n Print current date and time" },
 	{ "lliot", run_lliot,
-		"lliot:\r\n !DESTRUCTIVE! Low Level I/O Driver Test" },
-	{ "simple", run_simple, "simple:\r\n  Run simple FS tests" },
+		"lliot:\n !DESTRUCTIVE! Low Level I/O Driver Test" },
+	{ "simple", run_simple, "simple:\n  Run simple FS tests" },
 	{ "format", run_format,
-		"format:\r\n Creates a volume on the SD card." },
+		"format:\n Creates a volume on the SD card." },
 	{ "mount", run_mount,
-		"mount:\r\n Register the work area of the volume" },
+		"mount:\n Register the work area of the volume" },
 	{ "unmount", run_unmount,
-		"unmount:\r\n Unregister the work area of the volume" },
+		"unmount:\n Unregister the work area of the volume" },
 	{ "getfree", run_getfree,
-			"getfree:\r\n Print the free space on drive" },
-	{ "mkdir", run_mkdir, "mkdir <path>:\r\n"
-		"  Make a new directory.\r\n"
-		"  <path> Specifies the name of the directory to be created.\r\n"
+			"getfree:\n Print the free space on drive" },
+	{ "mkdir", run_mkdir, "mkdir <path>:\n"
+		"  Make a new directory.\n"
+		"  <path> Specifies the name of the directory to be created.\n"
 		"\te.g.: mkdir /dir1" },
-	{ "ls", run_ls, "ls <path>:\r\n  List directory" },
-	{ "cat", run_cat, "cat <filename>:\r\n  Type file contents" },
+	{ "ls", run_ls, "ls <path>:\n  List directory" },
+	{ "cat", run_cat, "cat <pathname>:\n  Type file contents" },
+	{ "rm", run_rm, "rm <pathname>:\n Remove file" },
+	{ "task-stats", run_task_stats, "Show task statistics" },
 	{ "help", run_help,
-		"help:\r\n"
+		"help:\n"
 		"  Shows this command help." }
 };
 static void run_help() {
 	for (size_t i = 0; i < count_of(cmds); ++i) {
-		printf("%s\n\r\n", cmds[i].help);
+		printf("%s\n\n", cmds[i].help);
 	}
 }
 
@@ -301,6 +325,6 @@ void process_command(char *cmd) {
 			}
 		}
 		if (count_of(cmds) == i)
-			printf("Command \"%s\" not found\r\n", cmdn);
+			printf("Command \"%s\" not found\n", cmdn);
 	}
 }

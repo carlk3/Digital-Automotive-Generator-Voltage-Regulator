@@ -61,7 +61,7 @@ typedef StaticEventGroup_t osStaticEventGroupDef_t;
 /* USER CODE END Variables */
 /* Definitions for Logger */
 osThreadId_t LoggerHandle;
-uint32_t LoggerBuffer[ 512 ];
+uint32_t LoggerBuffer[ 640 ];
 osStaticThreadDef_t LoggerControlBlock;
 const osThreadAttr_t Logger_attributes = {
   .name = "Logger",
@@ -73,7 +73,7 @@ const osThreadAttr_t Logger_attributes = {
 };
 /* Definitions for Console */
 osThreadId_t ConsoleHandle;
-uint32_t ConsoleBuffer[ 1024 ];
+uint32_t ConsoleBuffer[ 512 ];
 osStaticThreadDef_t ConsoleControlBlock;
 const osThreadAttr_t Console_attributes = {
   .name = "Console",

@@ -56,12 +56,12 @@ static void cnsl_tran(cnsl_state_t target) {
 static void cnsl_top_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Top Menu\r\n"
-				"S: Show Continuous Readings\r\n"
-				"T: Show Statistics\r\n"
-				"O: Configuration\r\n"
-				"C: Callibration\r\n"
-				"L: Command Line\r\n"
+		printf("Top Menu\n"
+				"S: Show Continuous Readings\n"
+				"T: Show Statistics\n"
+				"O: Configuration\n"
+				"C: Callibration\n"
+				"L: Command Line\n"
 				"Enter a letter: ");
 		fflush(stdout);
 		break;
@@ -71,28 +71,28 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 		fflush(stdout);
 		switch (tolower(c)) {
 		case 's':
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_show_st);
 			break;
 		case 't':
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_stat_st);
 			break;
 		case 'o':
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_cfg_st);
 			break;
 		case 'c':
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_cal_st);
 			break;
 		case 'l':
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_cmd_st);
 			break;
 
 		case '1': {
-			printf("\r\n");
+			printf("\n");
 //			enable_33_pwr(true);
 			evt_t evt = { REG_START_SIG, { 0 } };
 			osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
@@ -100,7 +100,7 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			break;
 		}
 		case '2': {
-			printf("\r\n");
+			printf("\n");
 //			enable_33_pwr(false);
 			evt_t evt = { REG_STOP_SIG, { 0 } };
 			osStatus_t rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 0);
@@ -108,14 +108,14 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			break;
 		}
 		case '3':
-			printf("\r\n");
+			printf("\n");
 			enable_field(true);
-			printf("field enabled\r\n");
+			printf("field enabled\n");
 			break;
 		case '4':
-			printf("\r\n");
+			printf("\n");
 			enable_field(false);
-			printf("field disabled\r\n");
+			printf("field disabled\n");
 			break;
 		case '5': {
 			evt_t evt = { REG_SLEEP_SIG, { 0 } };
@@ -123,8 +123,20 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			assert(osOK == rc);
 			break;
 		}
+		case '6': {
+			printf("\n");
+			evt_t evt = { LOG_STOP_SIG, { 0 } };
+			osStatus_t rc = osMessageQueuePut(LoggerEvtQHandle, &evt, 0, 3000);
+			if (osOK != rc) {
+				printf("Dropped LOG_STOP_SIG to LoggerEvtQ\n");
+			} else {
+				uint32_t flags = osEventFlagsWait(TaskStoppedHandle, TASK_LOG, osFlagsWaitAll, 3000);
+				configASSERT(!(0x80000000 & flags));
+			}
+			break;
+		}
 		default:
-			printf("\r\n");
+			printf("\n");
 			cnsl_dispatch(&cnsl_entry_evt);
 		} //
 	}
@@ -135,19 +147,19 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 static void cnsl_show_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Show continuous readings\r\n"
-				"[Enter anything to quit]\r\n"
-				"RPM    Volts  Amps   Int °C A11 °C\r\n"
-				"------ ------ ------ ------ ------\r\n");
+		printf("Show continuous readings\n"
+				"[Enter anything to quit]\n"
+				"RPM    Volts  Amps   Int °C A11 °C\n"
+				"------ ------ ------ ------ ------\n");
 		break;
 	case KEYSTROKE_SIG:
-		printf("\r\n");
+		printf("\n");
 		cnsl_tran(cnsl_top_st);
 		break;
 	case PERIOD_1HZ_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("%6.0f %6.2f %6.2f %6.1f %6.1f\r\n", data.rpm, data.Bvolts,
+		printf("%6.0f %6.2f %6.2f %6.1f %6.1f\n", data.rpm, data.Bvolts,
 				data.Bamps, data.internal_temp, data.ADC11_degC);
 		break;
 	}
@@ -158,12 +170,12 @@ static void cnsl_show_st(evt_t const *const pEvt) {
 static void cnsl_stat_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("\r\nUptime: %llu seconds\r\n", uptime);
+		printf("\r\nUptime: %llu seconds\n", uptime);
 		printf("Internal Temperature:\r\n\t"
 				"Mean: %4.3g\r\n\t"
 //				 "StdDev: %#7.3g\r\n\t"
 				"Min: %6.4g\r\n\t"
-				"Max: %6.4g\r\n",
+				"Max: %6.4g\n",
 				RS_Mean(&internal_temp_stats),
 //				 RS_StandardDeviation(&internal_temp_stats),
 				RS_Min(&internal_temp_stats),
@@ -171,21 +183,21 @@ static void cnsl_stat_st(evt_t const *const pEvt) {
 		printf("B+ Voltage: \r\n\t"
 				"Mean: %4.4g\r\n\t"
 				"Min: %4.3g\r\n\t"
-				"Max: %4.3g\r\n",
+				"Max: %4.3g\n",
 				RS_Mean(&Bplus_volt_stats),
 				RS_Min(&Bplus_volt_stats),
 				RS_Max(&Bplus_volt_stats));
 		printf("B+ Current:\r\n\t"
 				"Mean: %6.4g\r\n\t"
 				"Min: %6.3g\r\n\t"
-				"Max: %6.3g\r\n",
+				"Max: %6.3g\n",
 				RS_Mean(&Bplus_amp_stats),
 				RS_Min(&Bplus_amp_stats),
 				RS_Max(&Bplus_amp_stats));
-		printf("\r\nEnter:\r\n"
-				"T: Show again\r\n"
-				"R: Reset statistics\r\n"
-				"[anything else]: Quit\r\n");
+		printf("\r\nEnter:\n"
+				"T: Show again\n"
+				"R: Reset statistics\n"
+				"[anything else]: Quit\n");
 		break;
 	case KEYSTROKE_SIG: {
 		char c = pEvt->content.data;
@@ -200,7 +212,7 @@ static void cnsl_stat_st(evt_t const *const pEvt) {
 			cnsl_dispatch(&cnsl_entry_evt);
 			break;
 		default:
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_top_st);
 			break;
 		} // switch (tolower(c))
@@ -213,13 +225,13 @@ static void cnsl_stat_st(evt_t const *const pEvt) {
 static void cnsl_cfg_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Configuration\r\n"
-				"Settings:\r\n"
-		"  V: Voltage limit: %6.3g\r\n"
-		"  C: Current limit: %6.3g\r\n"
-		"  P: Power limit: %6.3g\r\n"
-		"  S: Save\r\n"
-		"Enter V, C, or P to change,\r\n"
+		printf("Configuration\n"
+				"Settings:\n"
+		"  V: Voltage limit: %6.3g\n"
+		"  C: Current limit: %6.3g\n"
+		"  P: Power limit: %6.3g\n"
+		"  S: Save\n"
+		"Enter V, C, or P to change,\n"
 		"S to commit changes: ",
 		cfg_get_vlim(),
 		cfg_get_clim(),
@@ -241,10 +253,10 @@ static void cnsl_cfg_st(evt_t const *const pEvt) {
 			break;
 		case 's':
 			cfg_save();
-			printf("\r\nConfiguration saved\r\n");
+			printf("\r\nConfiguration saved\n");
 			break;
 		default:
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_top_st);
 			break;
 		} // switch (tolower(c))
@@ -256,10 +268,10 @@ static void cnsl_cfg_st(evt_t const *const pEvt) {
 static void cnsl_cfg_v_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("\nConfigure Voltage Limit\r\n"
-				"[Enter new limit in volts,\r\n"
-				"or anything else to quit]\r\n");
-		printf("Existing: %6.3g\r\n", cfg_get_vlim());
+		printf("\nConfigure Voltage Limit\n"
+				"[Enter new limit in volts,\n"
+				"or anything else to quit]\n");
+		printf("Existing: %6.3g\n", cfg_get_vlim());
 		printf("New: ");
 		memset(cnsl.buf, 0, sizeof cnsl.buf);
 		cnsl.buf_end = 0;
@@ -292,10 +304,10 @@ static void cnsl_cfg_v_st(evt_t const *const pEvt) {
 static void cnsl_cfg_c_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("\nConfigure Current Limit\r\n"
-				"[Enter new limit in amps,\r\n"
-				"or anything else to quit]\r\n");
-		printf("Existing: %6.3g\r\n", cfg_get_clim());
+		printf("\nConfigure Current Limit\n"
+				"[Enter new limit in amps,\n"
+				"or anything else to quit]\n");
+		printf("Existing: %6.3g\n", cfg_get_clim());
 		printf("New: ");
 		memset(cnsl.buf, 0, sizeof cnsl.buf);
 		cnsl.buf_end = 0;
@@ -328,10 +340,10 @@ static void cnsl_cfg_c_st(evt_t const *const pEvt) {
 static void cnsl_cfg_p_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG:
-		printf("Configure Power Limit\r\n"
-				"[Enter new limit in watts,\r\n"
-				"or anything else to quit]\r\n");
-		printf("Existing: %6.3g\r\n", cfg_get_plim());
+		printf("Configure Power Limit\n"
+				"[Enter new limit in watts,\n"
+				"or anything else to quit]\n");
+		printf("Existing: %6.3g\n", cfg_get_plim());
 		printf("New: ");
 		memset(cnsl.buf, 0, sizeof cnsl.buf);
 		cnsl.buf_end = 0;
@@ -367,10 +379,10 @@ static void cnsl_cal_st(evt_t const *const pEvt) {
 	case CNSL_ENTRY_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("\nCalibration\r\n"
-		"  V: Voltage sense: %6.3g\r\n"
-		"  C: Current sense: %6.3g\r\n"
-		"Enter V or C to calibrate,\r\n"
+		printf("\nCalibration\n"
+		"  V: Voltage sense: %6.3g\n"
+		"  C: Current sense: %6.3g\n"
+		"Enter V or C to calibrate,\n"
 		"or anything else to quit: ",
 		data.Bvolts, data.Bamps);
 		break;
@@ -387,7 +399,7 @@ static void cnsl_cal_st(evt_t const *const pEvt) {
 			cnsl_tran(cnsl_cal_c_st);
 			break;
 		default:
-			printf("\r\n");
+			printf("\n");
 			cnsl_tran(cnsl_top_st);
 			break;
 		} // switch (tolower(c))
@@ -401,10 +413,10 @@ static void cnsl_cal_v_st(evt_t const *const pEvt) {
 	case CNSL_ENTRY_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("\nCalibrate Voltage Sense\r\n"
-				"[Enter true voltage, \r\n"
-				"or anything else to quit] \r\n");
-		printf("Sensed: %6.3g\r\n", data.Bvolts);
+		printf("\nCalibrate Voltage Sense\n"
+				"[Enter true voltage, \n"
+				"or anything else to quit] \n");
+		printf("Sensed: %6.3g\n", data.Bvolts);
 		printf("New: ");
 		memset(cnsl.buf, 0, sizeof cnsl.buf);
 		cnsl.buf_end = 0;
@@ -444,10 +456,10 @@ static void cnsl_cal_c_st(evt_t const *const pEvt) {
 	case CNSL_ENTRY_SIG: {
 		data_rec_t data;
 		get_data_1sec_avg(&data);
-		printf("\nCalibrate Current Sense\r\n"
-				"[Enter true current, \r\n"
-				"or anything else to quit] \r\n");
-		printf("Sensed: %6.3g\r\n", data.Bamps);
+		printf("\nCalibrate Current Sense\n"
+				"[Enter true current, \n"
+				"or anything else to quit] \n");
+		printf("Sensed: %6.3g\n", data.Bamps);
 		printf("New: ");
 		memset(cnsl.buf, 0, sizeof cnsl.buf);
 		cnsl.buf_end = 0;
@@ -508,8 +520,8 @@ static void cnsl_cal_c_st(evt_t const *const pEvt) {
 static void cnsl_cmd_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case CNSL_ENTRY_SIG: {
-		printf("Command Line\r\n"
-				"[Enter \"exit\" to quit] \r\n"
+		printf("Command Line\n"
+				"[Enter \"exit\" to quit] \n"
 				"> ");
 		fflush(stdout);
 		memset(cnsl.buf, 0, sizeof cnsl.buf);
@@ -527,7 +539,7 @@ static void cnsl_cmd_st(evt_t const *const pEvt) {
 			if (0 == strcmp("exit", cnsl.buf)) {
 				cnsl_tran(cnsl_top_st);
 			} else {
-				printf("\r\n");
+				printf("\n");
 				process_command(cnsl.buf);
 				memset(cnsl.buf, 0, sizeof cnsl.buf);
 				cnsl.buf_end = 0;
