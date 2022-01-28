@@ -18,6 +18,7 @@ extern osTimerId_t Period1HzHandle;
 extern osTimerId_t ActivityTimerHandle;
 extern osTimerId_t CnslActivityTimerHandle;
 extern osMutexId_t avg_data_mutexHandle;
+extern osEventFlagsId_t TaskReadyHandle;
 extern osEventFlagsId_t TaskStoppedHandle;
 
 #endif /* INC_FREERTOS_H_ */

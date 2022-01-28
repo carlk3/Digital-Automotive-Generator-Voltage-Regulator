@@ -72,7 +72,7 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 		if (osOK != rc) {
 			printf("Dropped LOG_STOP_SIG to LoggerEvtQ\n");
 		} else {
-			uint32_t flags = osEventFlagsWait(TaskStoppedHandle, TASK_LOG, osFlagsWaitAll, 3000);
+			uint32_t flags = osEventFlagsWait(TaskStoppedHandle, TASK_LOG, osFlagsWaitAny, 3000);
 			configASSERT(!(0x80000000 & flags));
 		}
 		enable_pwr(false);
@@ -82,7 +82,7 @@ static void reg_sleep_st(evt_t const *const pEvt) {
 
 //		LL_USART_EnableInStopMode(USART2);  // Allow to wake up
 
-		log_printf("\r\n\nEntering Stop Mode\r\n\n");
+		printf("\r\n\nEntering Stop Mode\r\n\n");
 		flash(3);
 		HAL_SuspendTick();
 		__disable_irq();
@@ -129,10 +129,9 @@ static void reg_failed_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case REG_ENTRY_SIG:
 		log_printf("Regulator entering failed state\r\n");
-		  /* Stop COMP1 (don't wake up) */
-		if (HAL_COMP_Stop(&hcomp1) != HAL_OK) {
-			Error_Handler();
-		}
+		enable_field(false);
+		break;
+	case REG_SLEEP_SIG:
 		reg_tran(reg_sleep_st);
 		break;
 	default:;
@@ -159,10 +158,14 @@ static void reg_idle_st(evt_t const *const pEvt) {
 }
 static void reg_run_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
-	case REG_ENTRY_SIG:
+	case REG_ENTRY_SIG: {
 		enable_pwr(true);
+		data_rec_t data;
+		get_data(&data);
+		update_avgs(&data);
 		log_printf("Regulator started\r\n");
 		break;
+	}
 	case REG_STOP_SIG:
 		reg_tran(reg_idle_st);
 		break;
@@ -188,7 +191,7 @@ static void reg_run_st(evt_t const *const pEvt) {
 			break;
 		}
 		if (data.internal_temp > 125.0) {
-			log_printf("Over temp!");
+			log_printf("Over temp! Internal temperature %.0f°C\n", data.internal_temp);
 			reg_tran(reg_failed_st);
 			break;
 		}
@@ -211,6 +214,9 @@ static void reg_run_st(evt_t const *const pEvt) {
 	}
 	case PERIOD_1HZ_SIG:
 		HAL_GPIO_TogglePin(D2___Red_LED_GPIO_Port, D2___Red_LED_Pin);
+
+		/* Keep alive if generator is spinning */
+
 		/*  Check if COMP1 output level is high, indicating D+ high */
 		if (!osTimerIsRunning(ActivityTimerHandle)
 				|| (HAL_COMP_GetOutputLevel(&hcomp1)) == COMP_OUTPUT_LEVEL_HIGH) {

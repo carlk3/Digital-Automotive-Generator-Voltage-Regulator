@@ -23,11 +23,12 @@ struct log_t {
 static evt_t log_entry_evt = { LOG_ENTRY_SIG, { 0 } };
 static evt_t log_exit_evt = { LOG_EXIT_SIG, { 0 } };
 
-static void log_run_st(evt_t const *const pEvt);  // fwd decl
+static void log_opening_st(evt_t const *const pEvt);  // fwd decl
+static void log_run_st(evt_t const *const pEvt);
 static void log_failed_st(evt_t const *const pEvt);
 static void log_idle_st(evt_t const *const pEvt);
 
-static log_t log = { log_run_st }; // the state machine instance
+static log_t log = { log_opening_st }; // the state machine instance
 
 void log_dispatch(evt_t const *evt) {
 	(log.state)(evt);
@@ -41,7 +42,12 @@ static void log_tran(log_state_t target) {
 static void log_failed_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case LOG_ENTRY_SIG:
+	case LOG_STOP_SIG: {
+		uint32_t flags = osEventFlagsSet(TaskStoppedHandle, TASK_LOG);
+		configASSERT(!(0x80000000 & flags));
 		printf("Logger failed\r\n");
+		break;
+	}
 	default:
 		;
 	}
@@ -56,6 +62,12 @@ static void log_idle_st(evt_t const *const pEvt) {
 	}
 	case LOG_START_SIG:
 		log_tran(log_run_st);
+		break;
+	case LOG_STOP_SIG: {
+		uint32_t flags = osEventFlagsSet(TaskStoppedHandle, TASK_LOG);
+		configASSERT(!(0x80000000 & flags));
+		break;
+	}
 	default:
 		;
 	}
@@ -63,7 +75,6 @@ static void log_idle_st(evt_t const *const pEvt) {
 
 static lfs_file_t msg_file, data_file;
 
-/* Open the message file */
 static bool open_msg_file() {
 //		memset(&msg_file, 0, sizeof msg_file);
 	int err = lfs_file_open(&lfs, &msg_file, "log.txt",
@@ -83,7 +94,6 @@ static bool open_msg_file() {
 	}
 	return true;
 }
-/* Open data log file */
 static bool open_data_file() {
 	char pathname[128] = {0};
 	size_t n = snprintf(pathname, sizeof pathname, "/data");
@@ -99,7 +109,7 @@ static bool open_data_file() {
 	lfs_mkdir(&lfs, pathname);
 	n += snprintf(pathname + n, sizeof pathname - n, "/%02d", tmbuf.tm_mon + 1);
 	lfs_mkdir(&lfs, pathname);
-	n += snprintf(pathname + n, sizeof pathname - n, "/%02d.txt", tmbuf.tm_mday);
+	n += snprintf(pathname + n, sizeof pathname - n, "/%02d.csv", tmbuf.tm_mday);
 	configASSERT(n < sizeof pathname);
 	int err = lfs_file_open(&lfs, &data_file, pathname,
 			LFS_O_WRONLY | LFS_O_CREAT | LFS_O_APPEND);
@@ -108,19 +118,18 @@ static bool open_data_file() {
 		log_tran(log_failed_st);
 		return false;
 	}
-	const char *s = "\nRPM,B+ Volts,B+ Amps,Internal °C,ADC11 °C\n";
-	lfs_ssize_t nfw = lfs_file_write(&lfs, &data_file, s, strlen(s) + 1);
+	const char *s = "\nDate,Time,RPM,B+ Volts,B+ Amps,Internal °C,ADC11 °C\n";
+	lfs_ssize_t nfw = lfs_file_write(&lfs, &data_file, s, strlen(s));
 	if (nfw < 0) {
 		print_fs_err(nfw);
 		log_tran(log_failed_st);
 		return false;
 	} else {
-		configASSERT((lfs_ssize_t)strlen(s) + 1 == nfw);
+		configASSERT((lfs_ssize_t)strlen(s) == nfw);
 	}
 	return true;
 }
-static void log_run_st(evt_t const *const pEvt) {
-	static bool line_begin;
+static void log_opening_st(evt_t const *const pEvt) {
 	switch (pEvt->sig) {
 	case LOG_ENTRY_SIG:
 		if (!fs_init()) {
@@ -144,16 +153,27 @@ static void log_run_st(evt_t const *const pEvt) {
 				break;
 			}
 		}
+		/* Open the message file */
 		if (!open_msg_file()) {
 			log_tran(log_failed_st);
 			break;
 		}
-		line_begin = true;
-
+		/* Open data log file */
 		if (!open_data_file()) {
 			log_tran(log_failed_st);
 			break;
 		}
+		log_tran(log_run_st);
+		break;
+	default:
+		;
+	}
+}
+static void log_run_st(evt_t const *const pEvt) {
+	static bool line_begin;
+	switch (pEvt->sig) {
+	case LOG_ENTRY_SIG:
+		line_begin = true;
 		break;
 	case LOG_PUTCH_SIG: {
 		char c = pEvt->content.data;
@@ -203,8 +223,10 @@ static void log_run_st(evt_t const *const pEvt) {
 		configASSERT(n);
 		data_rec_t data = {0};
 		get_data_1sec_avg(&data);
-		n += snprintf(lbuf + n, sizeof lbuf - n, "%.0f,%.2f,%.2f,%.1f,%.1f\n",
+		int m = snprintf_(lbuf + n, sizeof lbuf - n, "%.0f,%.2f,%.2f,%.1f,%.1f\n",
 				data.rpm, data.Bvolts, data.Bamps, data.internal_temp, data.ADC11_degC);
+		configASSERT(m > 0);
+		n += m;
 		configASSERT(n < sizeof(lbuf));
 		lfs_ssize_t nfw = lfs_file_write(&lfs, &data_file, lbuf, n);
 		if (nfw < 0) {

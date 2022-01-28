@@ -111,8 +111,6 @@ void SystemClock_Config(void); // Called in regulator_sm.c
 #define A2___B__Current_Sense_GPIO_Port GPIOA
 #define A3___B__Voltage_Sense_Pin GPIO_PIN_4
 #define A3___B__Voltage_Sense_GPIO_Port GPIOA
-#define A4___D__Voltage_Sense_Pin GPIO_PIN_5
-#define A4___D__Voltage_Sense_GPIO_Port GPIOA
 #define A5__ADC1_IN11_Pin GPIO_PIN_6
 #define A5__ADC1_IN11_GPIO_Port GPIOA
 #define A6___ADC1_IN12_Pin GPIO_PIN_7

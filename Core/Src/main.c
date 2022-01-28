@@ -145,7 +145,6 @@ int main(void)
   MX_SPI1_Init();
   MX_RTC_Init();
   MX_COMP1_Init();
-  MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
@@ -153,7 +152,8 @@ int main(void)
 	/* Start analog data conversion */
 	if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
 		Error_Handler();
-	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (void *)&raw_recs, ADC_RAW_REC_LEN))
+
+	if (HAL_OK != HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&raw_recs, hadc1.Init.NbrOfConversion))
 		Error_Handler();
 
 	  /* Start COMP1 */
@@ -163,8 +163,8 @@ int main(void)
 	}
 
 	// Start the TIMER TIM1 in the Input capture interrupt mode.
-	// This is the timer for measuring frequency on PA8 (D9)
-	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
+	// This is the timer for measuring frequency (for RPM)
+	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
 
 	cfg_load();
 
@@ -318,8 +318,7 @@ void HardFault_Handler(void) {
 #endif
 }
 
-
-
+__attribute__((__noreturn__))
 void my_assert_func(const char *file, int line, const char *func,
                     const char *pred) {
     printf("%s: assertion \"%s\" failed: file \"%s\", line %d, function: %s\n",
@@ -329,6 +328,11 @@ void my_assert_func(const char *file, int line, const char *func,
     taskDISABLE_INTERRUPTS();
     for( ;; ) __BKPT(3); // Stop in GUI as if at a breakpoint (if debugging,
                      // otherwise loop forever)
+}
+
+__attribute__((__noreturn__))
+void __assert_func( const char *filename, int line, const char *assert_func, const char *expr ) {
+	my_assert_func(filename, line, assert_func, expr);
 }
 
 /* USER CODE END 4 */

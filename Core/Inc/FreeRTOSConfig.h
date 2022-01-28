@@ -166,6 +166,7 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 header file. */
 /* USER CODE BEGIN 1 */
 //#define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );}
+__attribute__((__noreturn__))
 void my_assert_func(const char *file, int line, const char *func, const char *pred);
 #define configASSERT(__e) ((__e) ? (void)0 : my_assert_func(__FILE__, __LINE__, __func__, #__e))
 /* USER CODE END 1 */

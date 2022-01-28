@@ -151,7 +151,7 @@ static void run_getfree() {
 		return;
 	}
 	lfs_ssize_t free = cfg.block_count - allocated;
-	printf("Free blocks: %lu (%3.1f%% full)\n", free,
+	printf_("Free blocks: %lu (%3.1f%% full)\n", free,
 			100.0f * allocated / cfg.block_count);
 }
 static void run_mkdir() {

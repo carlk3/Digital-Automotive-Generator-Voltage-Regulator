@@ -176,6 +176,14 @@ const osEventFlagsAttr_t TaskStopped_attributes = {
   .cb_mem = &TaskStoppedControlBlock,
   .cb_size = sizeof(TaskStoppedControlBlock),
 };
+/* Definitions for TaskReady */
+osEventFlagsId_t TaskReadyHandle;
+osStaticEventGroupDef_t TaskReadyControlBlock;
+const osEventFlagsAttr_t TaskReady_attributes = {
+  .name = "TaskReady",
+  .cb_mem = &TaskReadyControlBlock,
+  .cb_size = sizeof(TaskReadyControlBlock),
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -284,10 +292,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
 
-  	//osStatus_t osTimerStart(osTimerId_t timer_id, uint32_t ticks)
-	osTimerStart(PeriodHandle, regulator_period);
-	osTimerStart(Period1HzHandle, period1Hz);
-
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
@@ -321,6 +325,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of TaskStopped */
   TaskStoppedHandle = osEventFlagsNew(&TaskStopped_attributes);
 
+  /* creation of TaskReady */
+  TaskReadyHandle = osEventFlagsNew(&TaskReady_attributes);
+
   /* USER CODE BEGIN RTOS_EVENTS */
 	/* add events, ... */
   /* USER CODE END RTOS_EVENTS */
@@ -340,6 +347,8 @@ void LoggerTask(void *argument)
 	(void)argument;
 	evt_t evt = { LOG_ENTRY_SIG, { 0 } };
 	log_dispatch(&evt);
+	uint32_t flags = osEventFlagsSet(TaskReadyHandle, TASK_LOG);
+	configASSERT(!(0x80000000 & flags));
 	/* Infinite loop */
 	for (;;) {
 		osStatus_t rc = osMessageQueueGet(LoggerEvtQHandle, &evt, 0, osWaitForever);
@@ -388,8 +397,15 @@ void RegulatorTask(void *argument)
 {
   /* USER CODE BEGIN RegulatorTask */
 	(void)argument;
+	uint32_t flags = osEventFlagsWait(TaskReadyHandle, TASK_LOG, osFlagsWaitAny, 3000);
+	configASSERT(!(0x80000000 & flags));
 	evt_t evt = { REG_ENTRY_SIG, { 0 } };
 	reg_dispatch(&evt);
+	flags = osEventFlagsSet(TaskReadyHandle, TASK_REG);
+	configASSERT(!(0x80000000 & flags));
+  	//osStatus_t osTimerStart(osTimerId_t timer_id, uint32_t ticks)
+	osTimerStart(PeriodHandle, regulator_period);
+	osTimerStart(Period1HzHandle, period1Hz);
 	/* Infinite loop */
 	for (;;) {
 		osStatus_t rc = osMessageQueueGet(RegulatorEvtQHandle, &evt, 0, osWaitForever);
@@ -422,8 +438,9 @@ void Period1HzCallback(void *argument)
 	osStatus_t rc = osMessageQueuePut(LoggerEvtQHandle, &evt, 0, 1000);
 	if (osOK != rc)
 		printf("Dropped PERIOD_1HZ_SIG to LoggerEvtQ\n");
-	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 10);
-	configASSERT(osOK == rc);
+	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 100);
+	if (osOK != rc)
+		printf("Dropped PERIOD_1HZ_SIG to ConsoleEvtQ\n");
 	rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 10);
 	configASSERT(osOK == rc);
   /* USER CODE END Period1HzCallback */
