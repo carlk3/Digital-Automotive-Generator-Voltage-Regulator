@@ -173,18 +173,20 @@ static void reg_run_st(evt_t const *const pEvt) {
 		reg_tran(reg_sleep_st);
 		break;
 	case PERIOD_SIG: {
-		data_rec_t data;
+		data_rec_t data, avg_data;
 		get_data(&data);
+		update_avgs(&data);
+		get_data_1sec_avg(&avg_data);
 		float clim = cfg_get_clim();
 		float vlim = cfg_get_vlim();
 
-		if (get_Bplus_amps() > 1.1 * clim && get_Bplus_volts() < 0.1 * vlim) {
+		if (avg_data.Bamps > 1.1 * clim && data.Bvolts < 0.1 * vlim) {
 			// Short?
 			log_printf("Probable short!\r\n");
 			reg_tran(reg_failed_st);
 			break;
 		}
-		if (get_Bplus_volts() > 1.1 * vlim && get_Bplus_amps() < 0.1 * clim) {
+		if (data.Bvolts > 1.1 * vlim && avg_data.Bamps < 0.1 * clim) {
 			// Open?
 			log_printf("Probable open!\r\n");
 			reg_tran(reg_failed_st);
@@ -208,11 +210,11 @@ static void reg_run_st(evt_t const *const pEvt) {
 			++field_on_count;
 		else
 			++field_off_count;
-		update_avgs(&data);
 		update_stats(&data);
 		break;
 	}
 	case PERIOD_1HZ_SIG:
+		update_duty_cycle();
 		HAL_GPIO_TogglePin(D2___Red_LED_GPIO_Port, D2___Red_LED_Pin);
 
 		/* Keep alive if generator is spinning */

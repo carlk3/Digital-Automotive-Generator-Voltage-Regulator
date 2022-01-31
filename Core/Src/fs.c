@@ -4,6 +4,8 @@
 //
 #include "printf.h"
 
+#define BLOCK_SZ 512
+
 // variables used by the filesystem
 lfs_t lfs;
 
@@ -61,8 +63,8 @@ void print_fs_err(int err) {
 static int user_provided_block_device_read(const struct lfs_config *c,
 		lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size) {
 	configASSERT(0 == off);
-	configASSERT(0 == size % 512);
-	return sd_read_blocks((sd_card_t*) c->context, buffer, block, size / 512);
+	configASSERT(0 == size % BLOCK_SZ);
+	return sd_read_blocks((sd_card_t*) c->context, buffer, block, size / BLOCK_SZ);
 }
 // Program a region in a block. The block must have previously
 // been erased. Negative error codes are propogated to the user.
@@ -70,8 +72,8 @@ static int user_provided_block_device_read(const struct lfs_config *c,
 static int user_provided_block_device_prog(const struct lfs_config *c,
 		lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
 	configASSERT(0 == off);
-	configASSERT(0 == size % 512);
-	return sd_write_blocks((sd_card_t*) c->context, buffer, block, size / 512);
+	configASSERT(0 == size % BLOCK_SZ);
+	return sd_write_blocks((sd_card_t*) c->context, buffer, block, size / BLOCK_SZ);
 }
 
 // Erase a block. A block must be erased before being programmed.
@@ -92,6 +94,15 @@ static int user_provided_block_device_sync(const struct lfs_config *c) {
 	return 0;
 }
 
+//static uint8_t s_buffer[BLOCK_SZ],
+//// Statically allocated read buffer Must be cache_size.
+static uint8_t s_read_buffer[BLOCK_SZ];
+// Statically allocated program buffer. Must be cache_size.
+static uint8_t s_prog_buffer[BLOCK_SZ];
+// Statically allocated lookahead buffer. Must be lookahead_size
+// and aligned to a 32-bit boundary.
+static uint32_t s_lookahead_buffer[4];
+
 // configuration of the filesystem is provided by this struct
 struct lfs_config cfg =
 {
@@ -102,13 +113,24 @@ struct lfs_config cfg =
 	.sync = user_provided_block_device_sync,
 
 	// block device configuration
-	.read_size = 512,
-	.prog_size = 512,
-	.block_size = 512,
-//	.block_count = sd_sectors(),
-	.cache_size = 512,
-	.lookahead_size = 16,
+	.block_size = BLOCK_SZ,
+	.cache_size = BLOCK_SZ,
+	.read_size = sizeof s_read_buffer,
+	.prog_size = sizeof s_prog_buffer,
+	.lookahead_size = sizeof s_lookahead_buffer,
+
+	.read_buffer = s_read_buffer,
+	.prog_buffer = s_prog_buffer,
+	.lookahead_buffer = s_lookahead_buffer,
+
 	.block_cycles = 500,
+};
+
+// Statically allocated file buffer. Must be cache_size.
+static uint8_t file_buffer[BLOCK_SZ];
+
+struct lfs_file_config file_cfg = {
+		.buffer = file_buffer
 };
 
 bool fs_init() {
@@ -151,7 +173,7 @@ int fs_test(void) {
 
 // read current count
 	uint32_t boot_count = 0;
-	lfs_file_open(&lfs, &file, "boot_count", LFS_O_RDWR | LFS_O_CREAT);
+	lfs_file_opencfg(&lfs, &file, "boot_count", LFS_O_RDWR | LFS_O_CREAT, &file_cfg);
 	lfs_file_read(&lfs, &file, &boot_count, sizeof(boot_count));
 
 // update boot count

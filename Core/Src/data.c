@@ -17,6 +17,7 @@
 unsigned long long uptime;
 
 unsigned field_on_count, field_off_count;
+static data_rec_t avg1sec;
 
 void get_data(data_rec_t *p) {
 	// * sec/min * rev/fire
@@ -25,10 +26,7 @@ void get_data(data_rec_t *p) {
 	p->Bvolts = get_Bplus_volts();
 	p->Bamps_raw = get_Bplus_amps_raw();
 	p->Bamps = get_Bplus_amps();
-	if (field_on_count + field_off_count)
-		p->duty_cycle = field_on_count / (field_on_count + field_off_count);
-	else
-		p->duty_cycle = 0;
+	p->duty_cycle = avg1sec.duty_cycle;
 	p->internal_temp = get_internal_temp();
 	p->ADC11_degC = get_ADC11_temp();
 	p->ADC12_degC = get_ADC12_temp();
@@ -36,7 +34,6 @@ void get_data(data_rec_t *p) {
 	p->ADC16_degC = get_ADC16_temp();
 }
 
-static data_rec_t avg1sec;
 static unsigned N;
 
 void update_avgs(data_rec_t *p) {
@@ -56,7 +53,6 @@ void update_avgs(data_rec_t *p) {
 		avg1sec.Bvolts += (p->Bvolts - avg1sec.Bvolts) / N;
 		avg1sec.Bamps_raw += (p->Bamps_raw - avg1sec.Bamps_raw) / N;
 		avg1sec.Bamps += (p->Bamps - avg1sec.Bamps) / N;
-		avg1sec.duty_cycle += (p->duty_cycle - avg1sec.duty_cycle) / N;
 		avg1sec.internal_temp += (p->internal_temp - avg1sec.internal_temp) / N;
 		avg1sec.ADC11_degC += (p->ADC11_degC - avg1sec.ADC11_degC) / N;
 		avg1sec.ADC12_degC += (p->ADC12_degC - avg1sec.ADC12_degC) / N;
@@ -81,6 +77,14 @@ void update_stats(data_rec_t *p) {
 	RS_Push(&internal_temp_stats, p->internal_temp);
 	RS_Push(&Bplus_volt_stats, p->Bvolts);
 	RS_Push(&Bplus_amp_stats, p->Bamps);
+}
+void update_duty_cycle() {
+	if (field_on_count + field_off_count) {
+		avg1sec.duty_cycle = 100.0f * field_on_count / (field_on_count + field_off_count);
+		field_on_count = field_off_count = 0;
+	} else {
+		avg1sec.duty_cycle = 0;
+	}
 }
 void reset_stats() {
 	RS_Clear(&internal_temp_stats);

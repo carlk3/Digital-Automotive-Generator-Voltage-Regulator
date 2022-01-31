@@ -19,45 +19,47 @@
 
 #define myASSERT configASSERT
 
+static const char *missing_arg_str = "Missing argument; see help\n";
+
 static void run_setrtc() {
 	const char *dateStr = strtok(NULL, " ");
 	if (!dateStr) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	int date = atoi(dateStr);
 
 	const char *monthStr = strtok(NULL, " ");
 	if (!monthStr) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	int month = atoi(monthStr);
 
 	const char *yearStr = strtok(NULL, " ");
 	if (!yearStr) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	int year = atoi(yearStr);
 
 	const char *hourStr = strtok(NULL, " ");
 	if (!hourStr) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	int hour = atoi(hourStr);
 
 	const char *minStr = strtok(NULL, " ");
 	if (!minStr) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	};
 	int min = atoi(minStr);
 
 	const char *secStr = strtok(NULL, " ");
 	if (!secStr) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	int sec = atoi(secStr);
@@ -112,6 +114,27 @@ static void run_lliot() {
 static void run_simple() {
 	fs_test();
 }
+static void run_big_file_test() {
+    const char *pcPathName = strtok(NULL, " ");
+    if (!pcPathName) {
+        printf(missing_arg_str);
+        return;
+    }
+    const char *pcSize = strtok(NULL, " ");
+    if (!pcSize) {
+        printf(missing_arg_str);
+        return;
+    }
+    size_t size = strtoul(pcSize, 0, 0);
+    const char *pcSeed = strtok(NULL, " ");
+    if (!pcSeed) {
+        printf(missing_arg_str);
+        return;
+    }
+    uint32_t seed = atoi(pcSeed);
+    void big_file_test(const char *const pathname, size_t size, uint32_t seed); // See Core/sd_driver/big_file_test.c
+    big_file_test(pcPathName, size, seed);
+}
 static void run_date() {
 	char buf[128] = { 0 };
 	time_t epoch_secs = time(NULL);
@@ -157,7 +180,7 @@ static void run_getfree() {
 static void run_mkdir() {
 	char *arg1 = strtok(NULL, " ");
 	if (!arg1) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	int err = lfs_mkdir(&lfs, arg1);
@@ -216,11 +239,11 @@ void run_ls() {
 static void run_cat() {
 	char *arg1 = strtok(NULL, " ");
 	if (!arg1) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	lfs_file_t file = {0};
-	int err = lfs_file_open(&lfs, &file, arg1, LFS_O_RDONLY);
+	int err = lfs_file_opencfg(&lfs, &file, arg1, LFS_O_RDONLY, &file_cfg);
 	if (LFS_ERR_OK != err) {
 		print_fs_err(err);
 		return;
@@ -246,7 +269,7 @@ static void run_cat() {
 void run_rm() {
 	char *arg1 = strtok(NULL, " ");
 	if (!arg1) {
-		printf("Missing argument\n");
+		printf(missing_arg_str);
 		return;
 	}
 	int err = lfs_remove(&lfs, arg1);
@@ -287,6 +310,13 @@ static cmd_def_t cmds[] =
 	{ "lliot", run_lliot,
 		"lliot:\n !DESTRUCTIVE! Low Level I/O Driver Test" },
 	{ "simple", run_simple, "simple:\n  Run simple FS tests" },
+    {"bft", run_big_file_test,
+     "bft <pathname> <size in bytes> <seed>:\n"
+	 " Big File Test\n"
+     " Writes random data to file <pathname>.\n"
+     " <size in bytes> must be multiple of 512.\n"
+     "\te.g.: bft bf 1048576 1\n"
+     "\tor: bft big1G-1 0x40000000 1"},
 	{ "format", run_format,
 		"format:\n Creates a volume on the SD card." },
 	{ "mount", run_mount,

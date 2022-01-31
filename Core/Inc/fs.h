@@ -12,6 +12,7 @@
 
 extern lfs_t lfs;
 extern struct lfs_config cfg;
+extern struct lfs_file_config file_cfg;
 
 void print_fs_err(int err);
 bool fs_init();

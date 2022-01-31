@@ -30,6 +30,7 @@ typedef struct {
 void get_data(data_rec_t *p);
 void get_data_1sec_avg(data_rec_t *p);
 void update_avgs(data_rec_t *p);
+void update_duty_cycle();
 
 extern RunningStat internal_temp_stats, Bplus_volt_stats, Bplus_amp_stats;
 

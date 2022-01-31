@@ -136,6 +136,11 @@ static void cnsl_top_st(evt_t const *const pEvt) {
 			}
 			break;
 		}
+		case '\n':
+		case '\r':
+			printf_("\n: ");
+			fflush(stdout);
+			break;
 		default:
 			printf_("\n");
 			cnsl_dispatch(&cnsl_entry_evt);
@@ -150,8 +155,8 @@ static void cnsl_show_st(evt_t const *const pEvt) {
 	case CNSL_ENTRY_SIG:
 		printf_("Show continuous readings\n"
 				"[Enter anything to quit]\n"
-				"RPM    Volts  Amps   Int °C A11 °C\n"
-				"------ ------ ------ ------ ------\n");
+				"RPM    Volts  Amps   Duty % Int °C A11 °C\n"
+				"------ ------ ------ ------ ------ ------\n");
 		break;
 	case KEYSTROKE_SIG:
 		if (isprint(pEvt->content.data)) {
@@ -163,8 +168,8 @@ static void cnsl_show_st(evt_t const *const pEvt) {
 		data_rec_t data;
 //		get_data_1sec_avg(&data);
 		get_data(&data);
-		printf_("%6.0f %6.2f %6.2f %6.1f %6.1f\n", data.rpm, data.Bvolts,
-				data.Bamps, data.internal_temp, data.ADC11_degC);
+		printf_("%6.0f %6.2f %6.2f %6.1f%% %6.1f %6.1f\n", data.rpm, data.Bvolts,
+				data.Bamps, data.duty_cycle, data.internal_temp, data.ADC11_degC);
 		break;
 	}
 	default:

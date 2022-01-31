@@ -11,6 +11,8 @@
 #include "console.h"
 #include "freertos.h"
 
+#include "printf.h"
+
 int __io_putchar(int ch) {
 	// Wait until USART Transmit Data Register Empty Flag is set
 	while (!LL_USART_IsActiveFlag_TXE(USART2))
@@ -48,6 +50,7 @@ void USART_CharReception_Callback() {
 		evt_t evt =
 			{ KEYSTROKE_SIG, .content.data = received_char };
 		osStatus_t rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 0);
-		configASSERT(osOK == rc);
+		if (osOK != rc)
+			printf("\nKeystroke overrun!\n");
 	}
 }

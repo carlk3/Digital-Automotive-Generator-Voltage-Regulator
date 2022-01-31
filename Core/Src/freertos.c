@@ -376,12 +376,12 @@ void ConsoleTask(void *argument)
 		// osStatus_t 	osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *msg_prio, uint32_t timeout)
 		osStatus_t rc = osMessageQueueGet(ConsoleEvtQHandle, &evt, 0, osWaitForever);
 		configASSERT(osOK == rc);
+		cnsl_dispatch(&evt);
 		// Keep regulator from going to sleep if there is no D+ voltage:
 		if (KEYSTROKE_SIG == evt.sig) {
 			osStatus_t rc = osTimerStart(CnslActivityTimerHandle, 15*60*1000);
 			configASSERT(osOK == rc);
 		}
-		cnsl_dispatch(&evt);
 	}
   /* USER CODE END ConsoleTask */
 }
@@ -397,7 +397,7 @@ void RegulatorTask(void *argument)
 {
   /* USER CODE BEGIN RegulatorTask */
 	(void)argument;
-	uint32_t flags = osEventFlagsWait(TaskReadyHandle, TASK_LOG, osFlagsWaitAny, 3000);
+	uint32_t flags = osEventFlagsWait(TaskReadyHandle, TASK_LOG, osFlagsWaitAny, 30000);
 	configASSERT(!(0x80000000 & flags));
 	evt_t evt = { REG_ENTRY_SIG, { 0 } };
 	reg_dispatch(&evt);
@@ -438,9 +438,9 @@ void Period1HzCallback(void *argument)
 	osStatus_t rc = osMessageQueuePut(LoggerEvtQHandle, &evt, 0, 1000);
 	if (osOK != rc)
 		printf("Dropped PERIOD_1HZ_SIG to LoggerEvtQ\n");
-	rc = osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 100);
-	if (osOK != rc)
-		printf("Dropped PERIOD_1HZ_SIG to ConsoleEvtQ\n");
+	/* rc = */ osMessageQueuePut(ConsoleEvtQHandle, &evt, 0, 100);
+//	if (osOK != rc)
+//		printf("Dropped PERIOD_1HZ_SIG to ConsoleEvtQ\n");
 	rc = osMessageQueuePut(RegulatorEvtQHandle, &evt, 0, 10);
 	configASSERT(osOK == rc);
   /* USER CODE END Period1HzCallback */
