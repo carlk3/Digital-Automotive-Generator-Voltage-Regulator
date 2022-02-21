@@ -152,25 +152,25 @@ static void run_format() {
 	/* Format the drive with default parameters */
 	int err = lfs_format(&lfs, &cfg);
 	if (LFS_ERR_OK != err)
-		print_fs_err(err);
+		print_fs_err("format", err);
 }
 static void run_mount() {
 	if (!fs_init()) return;
 	// mount the filesystem
 	int err = lfs_mount(&lfs, &cfg);
 	if (LFS_ERR_OK != err)
-		print_fs_err(err);
+		print_fs_err("mount", err);
 }
 static void run_unmount() {
 	int err = lfs_unmount(&lfs);
 	if (LFS_ERR_OK != err)
-		print_fs_err(err);
+		print_fs_err("unmount", err);
 }
 static void run_getfree() {
 	/* Get total sectors and free sectors */
 	lfs_ssize_t allocated = lfs_fs_size(&lfs);
 	if (allocated < 0) {
-		print_fs_err(allocated);
+		print_fs_err("lfs_fs_size", allocated);
 		return;
 	}
 	lfs_ssize_t free = cfg.block_count - allocated;
@@ -185,7 +185,7 @@ static void run_mkdir() {
 	}
 	int err = lfs_mkdir(&lfs, arg1);
 	if (LFS_ERR_OK != err)
-		print_fs_err(err);
+		print_fs_err("mkdir", err);
 }
 void run_ls() {
 	char *arg1 = strtok(NULL, " ");
@@ -199,7 +199,7 @@ void run_ls() {
 	// Returns a negative error code on failure.
 	int err = lfs_dir_open(&lfs, &dir, arg1);
 	if (LFS_ERR_OK != err) {
-		print_fs_err(err);
+		print_fs_err("dir_open", err);
 		return;
 	}
 	printf("Directory Listing:\n");
@@ -216,7 +216,7 @@ void run_ls() {
 		if (!rc)
 			break;
 		if (rc < 0) {
-			print_fs_err(err);
+			print_fs_err("read", err);
 			break;
 		}
 		if (LFS_TYPE_DIR == info.type) {
@@ -232,7 +232,7 @@ void run_ls() {
 	// Returns a negative error code on failure.
 	err = lfs_dir_close(&lfs, &dir);
 	if (LFS_ERR_OK != err) {
-		print_fs_err(err);
+		print_fs_err("close", err);
 		return;
 	}
 }
@@ -245,7 +245,7 @@ static void run_cat() {
 	lfs_file_t file = {0};
 	int err = lfs_file_opencfg(&lfs, &file, arg1, LFS_O_RDONLY, &file_cfg);
 	if (LFS_ERR_OK != err) {
-		print_fs_err(err);
+		print_fs_err("lfs_file_opencfg", err);
 		return;
 	}
 	// Read data from file
@@ -260,11 +260,11 @@ static void run_cat() {
 			printf("%.*s", sz, buf);
 	} while (sz > 0);
 	if (sz < 0)
-		print_fs_err(err);
+		print_fs_err("read", err);
 
 	err = lfs_file_close(&lfs, &file);
 	if (LFS_ERR_OK != err)
-		print_fs_err(err);
+		print_fs_err("close", err);
 }
 void run_rm() {
 	char *arg1 = strtok(NULL, " ");
@@ -274,7 +274,7 @@ void run_rm() {
 	}
 	int err = lfs_remove(&lfs, arg1);
 	if (LFS_ERR_OK != err)
-		print_fs_err(err);
+		print_fs_err("lfs_remove", err);
 }
 void run_task_stats() {
 	printf(

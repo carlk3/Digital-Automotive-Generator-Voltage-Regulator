@@ -46,16 +46,16 @@ static bool create_big_file_v1(const char *const pathname, size_t size,
 	// mount the filesystem
 	int err = lfs_mount(&lfs, &cfg);
 	if (LFS_ERR_OK != err)
-		print_fs_err(err);
+		print_fs_err("mount", err);
 	// reformat if we can't mount the filesystem
 	// this should only happen on the first boot
 	if (err) {
 		err = lfs_format(&lfs, &cfg);
 		if (LFS_ERR_OK != err)
-			print_fs_err(err);
+			print_fs_err("format", err);
 		err = lfs_mount(&lfs, &cfg);
 		if (LFS_ERR_OK != err) {
-			print_fs_err(err);
+			print_fs_err("mount attempt after format", err);
 			return false;
 		}
 	}
@@ -63,7 +63,7 @@ static bool create_big_file_v1(const char *const pathname, size_t size,
 	err = lfs_file_opencfg(&lfs, &data_file, pathname,
 			LFS_O_WRONLY | LFS_O_CREAT, &file_cfg);
 	if (LFS_ERR_OK != err) {
-		print_fs_err(err);
+		print_fs_err("lfs_file_opencfg", err);
 		return false;
 	}
     printf("Writing...\n");
@@ -74,7 +74,7 @@ static bool create_big_file_v1(const char *const pathname, size_t size,
         val = rand();
     	lfs_ssize_t nfw = lfs_file_write(&lfs, &data_file, &val, sizeof(val));
     	if (nfw < 0) {
-    		print_fs_err(nfw);
+    		print_fs_err("write", nfw);
     		return false;
     	} else {
     		configASSERT(sizeof(val) == nfw);
@@ -83,7 +83,7 @@ static bool create_big_file_v1(const char *const pathname, size_t size,
     /* Close the file. */
 	err = lfs_file_close(&lfs, &data_file);
 	if (LFS_ERR_OK != err) {
-		print_fs_err(err);
+		print_fs_err("close", err);
 		return false;
 	}
 	uint32_t elapsed_ms = osKernelGetTickCount() - xStart;
@@ -106,7 +106,7 @@ static void check_big_file_v1(const char *const pathname, size_t size, uint32_t 
 	int err = lfs_file_opencfg(&lfs, &data_file, pathname,
 			LFS_O_RDONLY, &file_cfg);
 	if (LFS_ERR_OK != err) {
-		print_fs_err(err);
+		print_fs_err("lfs_file_opencfg", err);
 		return;
 	}
     printf("Reading...\n");
@@ -117,7 +117,7 @@ static void check_big_file_v1(const char *const pathname, size_t size, uint32_t 
     for (i = 0; i < size / sizeof(val); ++i) {
     	lfs_ssize_t nfr = lfs_file_read(&lfs, &data_file, &val, sizeof(val));
     	if (nfr < 0) {
-    		print_fs_err(nfr);
+    		print_fs_err("read", nfr);
     		return;
     	} else {
     		configASSERT(sizeof(val) == nfr);
@@ -131,7 +131,7 @@ static void check_big_file_v1(const char *const pathname, size_t size, uint32_t 
     /* Close the file. */
 	err = lfs_file_close(&lfs, &data_file);
 	if (LFS_ERR_OK != err) {
-		print_fs_err(err);
+		print_fs_err("close", err);
 		return;
 	}
 	uint32_t elapsed_ms = osKernelGetTickCount() - xStart;

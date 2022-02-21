@@ -9,52 +9,52 @@
 // variables used by the filesystem
 lfs_t lfs;
 
-void print_fs_err(int err) {
+void print_fs_err(const char *msg, int err) {
 	switch (err) {
 	case LFS_ERR_OK:
-		printf(" No error \r\n");
+		printf("%s: No error \r\n", msg);
 		break;
 	case LFS_ERR_IO:
-		printf(" Error during device operation \r\n");
+		printf("%s: Error during device operation \r\n", msg);
 		break;
 	case LFS_ERR_CORRUPT:
-		printf(" Corrupted \r\n");
+		printf("%s: Corrupted \r\n", msg);
 		break;
 	case LFS_ERR_NOENT:
-		printf(" No directory entry \r\n");
+		printf("%s: No directory entry \r\n", msg);
 		break;
 	case LFS_ERR_EXIST:
-		printf(" Entry already exists \r\n");
+		printf("%s: Entry already exists \r\n", msg);
 		break;
 	case LFS_ERR_NOTDIR:
-		printf(" Entry is not a dir \r\n");
+		printf("%s: Entry is not a dir \r\n", msg);
 		break;
 	case LFS_ERR_ISDIR:
-		printf(" Entry is a dir \r\n");
+		printf("%s: Entry is a dir \r\n", msg);
 		break;
 	case LFS_ERR_NOTEMPTY:
-		printf(" Dir is not empty \r\n");
+		printf("%s: Dir is not empty \r\n", msg);
 		break;
 	case LFS_ERR_BADF:
-		printf(" Bad file number \r\n");
+		printf("%s: Bad file number \r\n", msg);
 		break;
 	case LFS_ERR_FBIG:
-		printf(" File too large \r\n");
+		printf("%s: File too large \r\n", msg);
 		break;
 	case LFS_ERR_INVAL:
-		printf(" Invalid parameter \r\n");
+		printf("%s: Invalid parameter \r\n", msg);
 		break;
 	case LFS_ERR_NOSPC:
-		printf(" No space left on device \r\n");
+		printf("%s: No space left on device \r\n", msg);
 		break;
 	case LFS_ERR_NOMEM:
-		printf(" No more memory available \r\n");
+		printf("%s: No more memory available \r\n", msg);
 		break;
 	case LFS_ERR_NOATTR:
-		printf(" No data/attr available \r\n");
+		printf("%s: No data/attr available \r\n", msg);
 		break;
 	case LFS_ERR_NAMETOOLONG:
-		printf(" File name too long \r\n");
+		printf("%s: File name too long \r\n", msg);
 	}
 }
 
