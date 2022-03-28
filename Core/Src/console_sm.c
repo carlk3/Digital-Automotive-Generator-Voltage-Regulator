@@ -1,5 +1,6 @@
 #include <ctype.h> // tolower
 #include <float.h>
+#include <freertos.c.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -7,8 +8,6 @@
 #include <stdlib.h>     /* strtoul */
 
 #include "main.h"
-#include "freertos.h"
-//
 #include "analog.h"
 #include "command.h"
 #include "config.h"

@@ -5,9 +5,9 @@
  *      Author: carlk
  */
 
+#include <freertos.c.h>
 #include <stdio.h>
 //
-#include "freertos.h"
 #include "main.h"
 #include "stm32l4xx_hal_pwr_ex.h" // HAL_PWREx_EnterSTOP2Mode
 //

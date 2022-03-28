@@ -36,7 +36,7 @@
 //   Channel Temperature Sensor:
 //      5 / .25 is >= 20 cycles
 //
-// 80×10⁶ Hz ÷ Clock Prescaler 10 ÷ 47.5 cycle sampling time ÷ 16x oversampling = 10526 samples/s
+// 80×10�?� Hz ÷ Clock Prescaler 10 ÷ 47.5 cycle sampling time ÷ 16x oversampling = 10526 samples/s
 //     ÷ 8 conversions/sequence => 1316 samples/s (if they all have a 47.5 cycle sampling time).
 
 /* USER CODE END Header */
@@ -181,6 +181,7 @@ int main(void)
   /* Init scheduler */
   osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
+
   /* Start scheduler */
   osKernelStart();
 
@@ -211,10 +212,12 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Configure LSE Drive Capability
   */
   HAL_PWR_EnableBkUpAccess();
   __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
@@ -233,6 +236,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -246,6 +250,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Enable MSI Auto calibration
   */
   HAL_RCCEx_EnableMSIPLLMode();
@@ -392,4 +397,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-

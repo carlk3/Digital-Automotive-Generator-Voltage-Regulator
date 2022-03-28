@@ -4,8 +4,7 @@
  *  Created on: Dec 25, 2021
  *      Author: carlk
  */
-#include "freertos.h"
-//
+#include <freertos.c.h>
 #include <string.h> // memcpy
 //
 #include "analog.h"

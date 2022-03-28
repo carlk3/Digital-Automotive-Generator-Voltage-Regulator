@@ -5,10 +5,10 @@
  *      Author: carlk
  */
 
-#ifndef INC_FREERTOS_H_
-#define INC_FREERTOS_H_
+#ifndef INC_FREERTOS_C_H_
+#define INC_FREERTOS_C_H_
 
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 
 extern osMessageQueueId_t LoggerEvtQHandle;
 extern osMessageQueueId_t ConsoleEvtQHandle;
@@ -21,4 +21,4 @@ extern osMutexId_t avg_data_mutexHandle;
 extern osEventFlagsId_t TaskReadyHandle;
 extern osEventFlagsId_t TaskStoppedHandle;
 
-#endif /* INC_FREERTOS_H_ */
+#endif /* INC_FREERTOS_C_H_ */

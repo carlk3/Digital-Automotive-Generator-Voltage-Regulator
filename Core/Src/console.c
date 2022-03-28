@@ -5,12 +5,11 @@
  *      Author: carlk
  */
 
+#include <freertos.c.h>
 #include <string.h>
 
 #include "main.h"
 #include "console.h"
-#include "freertos.h"
-
 #include "printf.h"
 
 int __io_putchar(int ch) {
